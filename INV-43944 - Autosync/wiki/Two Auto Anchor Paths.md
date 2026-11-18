@@ -11,7 +11,7 @@ tags:
 
 **Summary**: Measurabl-like organisations anchor through `ClientDLTTransaction`. Every other organisation anchors through the general sync, and only when the toggle is on.
 
-**Sources**: INV-43944 task description; [Measurabl Provisioning Product](../../Measurabl%20provision%20(INV-42559)/wiki/Measurabl%20Provisioning%20Product.md); investigation 2026-11-09.
+**Sources**: INV-43944 task description; [Measurabl Provisioning Product](../../INV-42559%20-%20Measurabl%20provision/wiki/Measurabl%20Provisioning%20Product.md); investigation 2026-11-09.
 
 **Last updated**: 2026-11-09
 

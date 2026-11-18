@@ -180,7 +180,7 @@ Grounding paths (repo `InveniamIndicia`, forget set already shipped):
 
 ## Related
 
-- [Decision register](Inveniam%20Indicia%20(INV-42236)/decisions/INDEX.md)
+- [Decision register](INV-42236%20-%20Inveniam%20Indicia/decisions/INDEX.md)
 - [ADR-0003 Shared Redis Forget Set](ADR-0003%20Shared%20Redis%20Forget%20Set.md) — §4 recalculate exception; R5 write order reused
 - [Write the Un-forget](../wiki/Write%20the%20Un-forget.md) — how-to for this ADR; you write the Go
 - [JIRA Tasks](../wiki/JIRA%20Tasks.md) — Task 1 (merged with former Task 4)

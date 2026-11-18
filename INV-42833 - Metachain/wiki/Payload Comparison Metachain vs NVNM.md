@@ -119,7 +119,7 @@ Other EVM-like Hub ledgers (ETH/Polygon/Base) use the same envelope; the inner c
 
 ## Side-by-side
 
-If we “put Metachain events onto NVNM”, we would be mapping an `{eventId, hash}` (or a full `BaseEvent`) onto something like `addRecord`. That is not a drop-in: NVNM records are **file/registry** shaped (`uri`, `checksum`, `registryId`), not **event-id** shaped. Options (not decided — see [Open Questions](Metachain%20(INV-42833)/wiki/Open%20Questions.md)):
+If we “put Metachain events onto NVNM”, we would be mapping an `{eventId, hash}` (or a full `BaseEvent`) onto something like `addRecord`. That is not a drop-in: NVNM records are **file/registry** shaped (`uri`, `checksum`, `registryId`), not **event-id** shaped. Options (not decided — see [Open Questions](INV-42833%20-%20Metachain/wiki/Open%20Questions.md)):
 
 1. **Hash-only anchor**: one NVNM record whose `checksum` is the event sha256 and whose `metadata`/`uri` carry `eventId`. Metachain Postgres/Immudb stay.
 2. **Write-through**: every Metachain event becomes an NVNM `addRecord` (volume + registry model problem).
@@ -130,4 +130,4 @@ If we “put Metachain events onto NVNM”, we would be mapping an `{eventId, ha
 - [Metachain Write Path](Metachain%20Write%20Path.md)
 - [Metachain Ownership And Infrastructure](Metachain%20Ownership%20And%20Infrastructure.md)
 - [Metachain And NVNM Flow](Metachain%20And%20NVNM%20Flow.md)
-- [Open Questions](Metachain%20(INV-42833)/wiki/Open%20Questions.md)
+- [Open Questions](INV-42833%20-%20Metachain/wiki/Open%20Questions.md)

@@ -26,7 +26,7 @@ The site's upload box is only a way to get **text**. After that, the app already
 bytes  →  text  →  citations  →  (registry_id, canonical key)  →  one eth_call each
 ```
 
-1. **Extract.** `.pdf` / `.docx` / `.txt` / `.md` → in-memory text. Same for every court. [Uploaded Documents](NVNM-Cite%20(INV-42043)/wiki/Uploaded%20Documents.md). (source: extract.py)
+1. **Extract.** `.pdf` / `.docx` / `.txt` / `.md` → in-memory text. Same for every court. [Uploaded Documents](INV-42043%20-%20NVNM-Cite/wiki/Uploaded%20Documents.md). (source: extract.py)
 2. **Normalize.** eyecite + the open spec turn the text into occurrences. Each usable cite gets:
    - `as_written` — what the brief said
    - `canonical` — `<volume> <edition> <first-page>` (e.g. `410 U.S. 113`)
@@ -63,13 +63,13 @@ If the reporter spans many courts and there is no usable parenthetical (`925 F.3
 ## Not this path
 
 - **Verify a receipt** hashes the file in the browser and looks up the SHA-256 in *receipt* registries. Different upload box, different key.
-- **Registry bots / bulk load** put records *onto* the chain. Out of this investigation for now. See [Registry Maintenance](NVNM-Cite%20(INV-42043)/wiki/Registry%20Maintenance.md) if needed later.
+- **Registry bots / bulk load** put records *onto* the chain. Out of this investigation for now. See [Registry Maintenance](INV-42043%20-%20NVNM-Cite/wiki/Registry%20Maintenance.md) if needed later.
 
 ## Related pages
 
-- [Canonical Citation](NVNM-Cite%20(INV-42043)/wiki/Canonical%20Citation.md) — wild → standard key
-- [Eyecite](NVNM-Cite%20(INV-42043)/wiki/Eyecite.md)
-- [Uploaded Documents](NVNM-Cite%20(INV-42043)/wiki/Uploaded%20Documents.md)
-- [Prerequisites](NVNM-Cite%20(INV-42043)/wiki/Prerequisites.md)
-- [Web UI](NVNM-Cite%20(INV-42043)/wiki/Web%20UI.md)
-- [Wiki Index](NVNM-Cite%20(INV-42043)/wiki/index.md)
+- [Canonical Citation](INV-42043%20-%20NVNM-Cite/wiki/Canonical%20Citation.md) — wild → standard key
+- [Eyecite](INV-42043%20-%20NVNM-Cite/wiki/Eyecite.md)
+- [Uploaded Documents](INV-42043%20-%20NVNM-Cite/wiki/Uploaded%20Documents.md)
+- [Prerequisites](INV-42043%20-%20NVNM-Cite/wiki/Prerequisites.md)
+- [Web UI](INV-42043%20-%20NVNM-Cite/wiki/Web%20UI.md)
+- [Wiki Index](INV-42043%20-%20NVNM-Cite/wiki/index.md)

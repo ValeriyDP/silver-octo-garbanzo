@@ -12,12 +12,12 @@ tags:
 
 Architecture Decision Records for this investigation. Each note is **context → decision → consequences**.
 
-Knowledge (how it works, how-tos) lives in [wiki/index](NVNM-Cite%20(INV-42043)/wiki/index.md). Cross-link when a wiki page forces a choice.
+Knowledge (how it works, how-tos) lives in [wiki/index](INV-42043%20-%20NVNM-Cite/wiki/index.md). Cross-link when a wiki page forces a choice.
 
 ## How to use
 
 - One decision per note. `ADR-0001 …`, `ADR-0002 …`.
-- Copy [ADR Template](NVNM-Cite%20(INV-42043)/decisions/ADR%20Template.md), fill it, add a row below.
+- Copy [ADR Template](INV-42043%20-%20NVNM-Cite/decisions/ADR%20Template.md), fill it, add a row below.
 - Durable reasoning, not a play-by-play.
 - Cross-link related ADRs and wiki pages with Markdown links (spaces as `%20`).
 - Status: `Proposed` · `Accepted` · `Superseded by [ADR-…](…)` · `Deprecated` · `Rejected`.
@@ -30,5 +30,5 @@ Knowledge (how it works, how-tos) lives in [wiki/index](NVNM-Cite%20(INV-42043)/
 
 ## Related
 
-- [Project README](NVNM-Cite%20(INV-42043)/README.md)
-- [Wiki](NVNM-Cite%20(INV-42043)/wiki/index.md)
+- [Project README](INV-42043%20-%20NVNM-Cite/README.md)
+- [Wiki](INV-42043%20-%20NVNM-Cite/wiki/index.md)

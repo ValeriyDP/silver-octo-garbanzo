@@ -86,7 +86,7 @@ Nothing shipped yet. Grounding for the first implementation:
 
 ## Related
 
-- [Decision register](Inveniam%20Indicia%20(INV-42236)/decisions/INDEX.md)
+- [Decision register](INV-42236%20-%20Inveniam%20Indicia/decisions/INDEX.md)
 - [ADR-0002 Forget Table Before Cache](ADR-0002%20Forget%20Table%20Before%20Cache.md)
 - [Slice 2c Tenant Offboard](../wiki/Slice%202c%20Tenant%20Offboard.md)
 - [TOCTOU](../wiki/TOCTOU.md)

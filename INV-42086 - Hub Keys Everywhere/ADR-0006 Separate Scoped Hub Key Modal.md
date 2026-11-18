@@ -16,7 +16,7 @@ tags:
 - **Date**: 2026-08-22
 - **Area**: inveniam-v2 UI
 - **Ticket**: `INV-42086` (branch `INV-42086-hub-keys-everywhere`)
-- **Related**: [ADR-0005 Restrict Scoped Hub Keys To NVNM](ADR-0005%20Restrict%20Scoped%20Hub%20Keys%20To%20NVNM.md), [ADR-0001 Scoped Add HUB Key](ADR-0001%20Scoped%20Add%20HUB%20Key.md), [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- **Related**: [ADR-0005 Restrict Scoped Hub Keys To NVNM](ADR-0005%20Restrict%20Scoped%20Hub%20Keys%20To%20NVNM.md), [ADR-0001 Scoped Add HUB Key](ADR-0001%20Scoped%20Add%20HUB%20Key.md), [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)
 
 ## Context
 
@@ -70,4 +70,4 @@ This **supersedes the inveniam-v2 (UX guard) portion of [ADR-0005](ADR-0005%20Re
 
 - [ADR-0005 Restrict Scoped Hub Keys To NVNM](ADR-0005%20Restrict%20Scoped%20Hub%20Keys%20To%20NVNM.md)
 - [ADR-0001 Scoped Add HUB Key](ADR-0001%20Scoped%20Add%20HUB%20Key.md)
-- [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)

@@ -17,7 +17,7 @@ Each decision is a self-contained note capturing **context → decision → cons
 ## How to use this folder
 
 - One decision per note. Prefix with a zero-padded number: `ADR-0001 …`, `ADR-0002 …`.
-- Start from [ADR Template](Hub%20Keys%20Everywhere%20(INV-42086)/ADR%20Template.md) — copy it, fill it in, then add a row to the register below.
+- Start from [ADR Template](INV-42086%20-%20Hub%20Keys%20Everywhere/ADR%20Template.md) — copy it, fill it in, then add a row to the register below.
 - Keep notes durable: record the reasoning and trade-offs, not a play-by-play of the work.
 - Cross-link related decisions at the bottom with Markdown links (`[Title](Title.md)`, spaces URL-encoded as `%20`).
 - Status values: `Proposed` · `Accepted` · `Superseded by [ADR-XXXX …](ADR-XXXX%20….md)` · `Deprecated`.
@@ -58,4 +58,4 @@ Each decision is a self-contained note capturing **context → decision → cons
 
 ## Search
 
-This folder is an isolated, `qmd`-searchable LLM wiki. See [AGENTS](Hub%20Keys%20Everywhere%20(INV-42086)/AGENTS.md) → [CLAUDE](Hub%20Keys%20Everywhere%20(INV-42086)/CLAUDE.md) for the search workflow and one-time setup; [log](Hub%20Keys%20Everywhere%20(INV-42086)/log.md) tracks every change.
+This folder is an isolated, `qmd`-searchable LLM wiki. See [AGENTS](INV-42086%20-%20Hub%20Keys%20Everywhere/AGENTS.md) → [CLAUDE](INV-42086%20-%20Hub%20Keys%20Everywhere/CLAUDE.md) for the search workflow and one-time setup; [log](INV-42086%20-%20Hub%20Keys%20Everywhere/log.md) tracks every change.

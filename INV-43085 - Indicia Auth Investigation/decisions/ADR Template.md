@@ -14,7 +14,7 @@ tags:
 - **Date**: YYYY-MM-DD
 - **Area**: <service / UI / platform>
 - **Deciders**: <names / roles>
-- **Related**: [ADR-…](ADR-….md), [wiki page](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/Open%20Questions.md), tickets
+- **Related**: [ADR-…](ADR-….md), [wiki page](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/Open%20Questions.md), tickets
 
 ## Context
 
@@ -43,5 +43,5 @@ What we decided, stated plainly. Enough shape (types, endpoints, components) to 
 
 ## Related
 
-- [Decision register](Indicia%20Auth%20Investigation%20(INV-43085)/decisions/INDEX.md)
-- [Wiki](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/index.md)
+- [Decision register](INV-43085%20-%20Indicia%20Auth%20Investigation/decisions/INDEX.md)
+- [Wiki](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/index.md)

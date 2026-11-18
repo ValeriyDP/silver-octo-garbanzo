@@ -17,7 +17,7 @@ tags:
 - **Date**: 2026-08-22
 - **Area**: hub-service (+ shared Events module, websockets-service)
 - **Ticket**: `INV-42086` (branch `INV-42086-hub-keys-everywhere`)
-- **Related**: [ADR-0003 Gapless Scoped Vault Path And Command Wiring](ADR-0003%20Gapless%20Scoped%20Vault%20Path%20And%20Command%20Wiring.md), [ADR-0002 Per-Level Hub Key Endpoints](ADR-0002%20Per-Level%20Hub%20Key%20Endpoints.md), [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- **Related**: [ADR-0003 Gapless Scoped Vault Path And Command Wiring](ADR-0003%20Gapless%20Scoped%20Vault%20Path%20And%20Command%20Wiring.md), [ADR-0002 Per-Level Hub Key Endpoints](ADR-0002%20Per-Level%20Hub%20Key%20Endpoints.md), [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)
 
 ## Context
 
@@ -68,4 +68,4 @@ Introduce two dedicated events for sub-org writes and route them away from deals
 - [ADR-0001 Scoped Add HUB Key](ADR-0001%20Scoped%20Add%20HUB%20Key.md)
 - [ADR-0002 Per-Level Hub Key Endpoints](ADR-0002%20Per-Level%20Hub%20Key%20Endpoints.md)
 - [ADR-0003 Gapless Scoped Vault Path And Command Wiring](ADR-0003%20Gapless%20Scoped%20Vault%20Path%20And%20Command%20Wiring.md)
-- [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)

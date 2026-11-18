@@ -271,5 +271,5 @@ Production keys Vault auto-unseals via a cloud KMS DevOps owns. Restart there ke
 - [Slice 2c Tenant Offboard](Slice%202c%20Tenant%20Offboard.md)
 - [ADR-0001 Acknowledged Sidecar Cache Purge](../decisions/ADR-0001%20Acknowledged%20Sidecar%20Cache%20Purge.md)
 - [TOCTOU](TOCTOU.md)
-- [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md)
-- [Wiki Index](Inveniam%20Indicia%20(INV-42236)/wiki/index.md)
+- [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md)
+- [Wiki Index](INV-42236%20-%20Inveniam%20Indicia/wiki/index.md)

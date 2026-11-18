@@ -20,7 +20,7 @@ tags:
 - **Date**: 2026-08-23
 - **Area**: hub-service + inveniam-v2 UI
 - **Ticket**: `INV-42086` (branch `INV-42086-hub-keys-everywhere`)
-- **Related**: [ADR-0010 Scope-Aware Credentials In Transaction Execution](ADR-0010%20Scope-Aware%20Credentials%20In%20Transaction%20Execution.md), [ADR-0007 Server-Side Closest Hub Key Resolution](ADR-0007%20Server-Side%20Closest%20Hub%20Key%20Resolution.md), [ADR-0004 Scoped Hub Key Events](ADR-0004%20Scoped%20Hub%20Key%20Events.md), [ADR-0005 Restrict Scoped Hub Keys To NVNM](ADR-0005%20Restrict%20Scoped%20Hub%20Keys%20To%20NVNM.md), [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- **Related**: [ADR-0010 Scope-Aware Credentials In Transaction Execution](ADR-0010%20Scope-Aware%20Credentials%20In%20Transaction%20Execution.md), [ADR-0007 Server-Side Closest Hub Key Resolution](ADR-0007%20Server-Side%20Closest%20Hub%20Key%20Resolution.md), [ADR-0004 Scoped Hub Key Events](ADR-0004%20Scoped%20Hub%20Key%20Events.md), [ADR-0005 Restrict Scoped Hub Keys To NVNM](ADR-0005%20Restrict%20Scoped%20Hub%20Keys%20To%20NVNM.md), [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)
 
 ## Context
 
@@ -95,4 +95,4 @@ Add a hub-service operation that **promotes the closest scoped NVNM key into the
 - [ADR-0004 Scoped Hub Key Events](ADR-0004%20Scoped%20Hub%20Key%20Events.md)
 - [ADR-0005 Restrict Scoped Hub Keys To NVNM](ADR-0005%20Restrict%20Scoped%20Hub%20Keys%20To%20NVNM.md)
 - [HOW-TO Enable DLT Validation (NVNM)](HOW-TO%20Enable%20DLT%20Validation%20(NVNM).md)
-- [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)

@@ -55,7 +55,7 @@ Later reconstruct: `hubOrganisationId` from `io_hub_organisation_map` + resolved
 
 - [Measurabl Provisioning Handoff](Measurabl%20Provisioning%20Handoff.md)
 
-- [Wiki Index](Measurabl%20provision%20(INV-42559)/wiki/index.md)
+- [Wiki Index](INV-42559%20-%20Measurabl%20provision/wiki/index.md)
 - [Hub Onboarding Chain](Hub%20Onboarding%20Chain.md)
 - [Hub User JWT Endpoints](Hub%20User%20JWT%20Endpoints.md)
 - [Identity Provisioner](Identity%20Provisioner.md)

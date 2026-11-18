@@ -83,7 +83,7 @@ This event is optional for the file Synced badge. It is required if the deal UI 
 
 Relative to [Measurabl DLT Transaction](Measurabl%20DLT%20Transaction.md):
 
-1. **Taxonomy row before sync.** **Unsolved — [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) #14.** Inbound `taxonomyId` is useless until data-room has the NVNM row. Upload does not create it. View-file URL is `fileId` + `dealId` only. See [Taxonomy Id Before Client DLT](Taxonomy%20Id%20Before%20Client%20DLT.md).
+1. **Taxonomy row before sync.** **Unsolved — [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) #14.** Inbound `taxonomyId` is useless until data-room has the NVNM row. Upload does not create it. View-file URL is `fileId` + `dealId` only. See [Taxonomy Id Before Client DLT](Taxonomy%20Id%20Before%20Client%20DLT.md).
 2. **Copy `taxonomyId` onto `transactions`** so async `onComplete` can emit `HubDocumentSyncingSucceededEvent` with it.
 3. **Non-empty `transactionPointer`** on that emit (`transactions.transactionId`).
 4. **`status = Succeed`** on the emit (from the row).
@@ -93,9 +93,9 @@ Relative to [Measurabl DLT Transaction](Measurabl%20DLT%20Transaction.md):
 
 ## Related pages
 
-- [Wiki Index](Measurabl%20provision%20(INV-42559)/wiki/index.md)
+- [Wiki Index](INV-42559%20-%20Measurabl%20provision/wiki/index.md)
 - [Event Payloads](Event%20Payloads.md)
 - [Measurabl DLT Transaction](Measurabl%20DLT%20Transaction.md)
 - [Hub Service Anchor Projector Sequence](Hub%20Service%20Anchor%20Projector%20Sequence.md)
-- [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) #14
+- [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) #14
 - [Taxonomy Id Before Client DLT](Taxonomy%20Id%20Before%20Client%20DLT.md)

@@ -43,4 +43,4 @@ What we decided to do, stated plainly. Include the shape of the solution — key
 
 ## Related
 
-- [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)

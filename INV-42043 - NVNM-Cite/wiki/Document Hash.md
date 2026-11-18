@@ -34,11 +34,11 @@ The product’s second job is a **filing receipt**: a permanent, independently r
 
 (source: README.md, docs/record-schema.md, docs/web-demo.md)
 
-Check itself does **not** need this hash. Check uses plaintext citation keys. [How Check Finds Citations](NVNM-Cite%20(INV-42043)/wiki/How%20Check%20Finds%20Citations.md). Hashing happens when you **Record** a receipt (or when someone **Verifies** one).
+Check itself does **not** need this hash. Check uses plaintext citation keys. [How Check Finds Citations](INV-42043%20-%20NVNM-Cite/wiki/How%20Check%20Finds%20Citations.md). Hashing happens when you **Record** a receipt (or when someone **Verifies** one).
 
 ## Related pages
 
-- [How Check Finds Citations](NVNM-Cite%20(INV-42043)/wiki/How%20Check%20Finds%20Citations.md)
-- [Canonical Citation](NVNM-Cite%20(INV-42043)/wiki/Canonical%20Citation.md)
-- [Authentication](NVNM-Cite%20(INV-42043)/wiki/Authentication.md)
-- [Wiki Index](NVNM-Cite%20(INV-42043)/wiki/index.md)
+- [How Check Finds Citations](INV-42043%20-%20NVNM-Cite/wiki/How%20Check%20Finds%20Citations.md)
+- [Canonical Citation](INV-42043%20-%20NVNM-Cite/wiki/Canonical%20Citation.md)
+- [Authentication](INV-42043%20-%20NVNM-Cite/wiki/Authentication.md)
+- [Wiki Index](INV-42043%20-%20NVNM-Cite/wiki/index.md)

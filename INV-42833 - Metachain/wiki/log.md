@@ -12,8 +12,8 @@ tags:
 
 Append-only. Newest at the bottom.
 
-- 2026-10-02 — Created knowledge base (`wiki/`) for Metachain (INV-42833). Starter page: [Open Questions](Metachain%20(INV-42833)/wiki/Open%20Questions.md).
-- 2026-10-02 — Ingested [Metachain task](../raw/Metachain%20task.md) into [Investigation Brief](Investigation%20Brief.md). Traced current-state usage in `inveniam.io`: [Ownership And Infrastructure](Metachain%20Ownership%20And%20Infrastructure.md), [Write Path](Metachain%20Write%20Path.md), [Payload Comparison](Payload%20Comparison%20Metachain%20vs%20NVNM.md), [Flow diagram](Metachain%20And%20NVNM%20Flow.md). Filled [Open Questions](Metachain%20(INV-42833)/wiki/Open%20Questions.md).
+- 2026-10-02 — Created knowledge base (`wiki/`) for Metachain (INV-42833). Starter page: [Open Questions](INV-42833%20-%20Metachain/wiki/Open%20Questions.md).
+- 2026-10-02 — Ingested [Metachain task](../raw/Metachain%20task.md) into [Investigation Brief](Investigation%20Brief.md). Traced current-state usage in `inveniam.io`: [Ownership And Infrastructure](Metachain%20Ownership%20And%20Infrastructure.md), [Write Path](Metachain%20Write%20Path.md), [Payload Comparison](Payload%20Comparison%20Metachain%20vs%20NVNM.md), [Flow diagram](Metachain%20And%20NVNM%20Flow.md). Filled [Open Questions](INV-42833%20-%20Metachain/wiki/Open%20Questions.md).
 - 2026-10-02 — Added [How File Shows As Synced](How%20File%20Shows%20As%20Synced.md): data-room badge and deal-log “synced” come from taxonomy document sync, not per-event Immudb hashes.
 - 2026-10-02 — Added [Event Hash vs File Taxonomy](Event%20Hash%20vs%20File%20Taxonomy.md). Same MS, two writes; INV-42833 is the event-hash lane unless we say otherwise.
 - 2026-10-02 — Redrew [Metachain And NVNM Flow](Metachain%20And%20NVNM%20Flow.md) Excalidraw as two Metachain actions (event hash vs file taxonomy) plus NVNM as Hub cousin of taxonomy only.

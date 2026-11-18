@@ -73,4 +73,4 @@ Metachain also publishes its own follow-up events (`McInveniamEventHashWrittenEv
 - [How File Shows As Synced](How%20File%20Shows%20As%20Synced.md) — document-sync badge (separate from this hash path)
 - [Payload Comparison Metachain vs NVNM](Payload%20Comparison%20Metachain%20vs%20NVNM.md)
 - [Metachain And NVNM Flow](Metachain%20And%20NVNM%20Flow.md)
-- [Open Questions](Metachain%20(INV-42833)/wiki/Open%20Questions.md)
+- [Open Questions](INV-42833%20-%20Metachain/wiki/Open%20Questions.md)

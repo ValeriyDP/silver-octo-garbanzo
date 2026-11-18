@@ -21,7 +21,7 @@ tags:
 - **Date**: 2026-08-22
 - **Area**: hub-service + data-room-service + deals-service + events
 - **Ticket**: `INV-42086` (branch `INV-42086-hub-keys-everywhere`)
-- **Related**: [ADR-0011 NVNM Org-Slot Key Promotion For Sync (Demo)](ADR-0011%20NVNM%20Org-Slot%20Key%20Promotion%20For%20Sync%20(Demo).md), [ADR-0007 Server-Side Closest Hub Key Resolution](ADR-0007%20Server-Side%20Closest%20Hub%20Key%20Resolution.md), [ADR-0003 Gapless Scoped Vault Path And Command Wiring](ADR-0003%20Gapless%20Scoped%20Vault%20Path%20And%20Command%20Wiring.md), [ADR-0005 Restrict Scoped Hub Keys To NVNM](ADR-0005%20Restrict%20Scoped%20Hub%20Keys%20To%20NVNM.md), [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- **Related**: [ADR-0011 NVNM Org-Slot Key Promotion For Sync (Demo)](ADR-0011%20NVNM%20Org-Slot%20Key%20Promotion%20For%20Sync%20(Demo).md), [ADR-0007 Server-Side Closest Hub Key Resolution](ADR-0007%20Server-Side%20Closest%20Hub%20Key%20Resolution.md), [ADR-0003 Gapless Scoped Vault Path And Command Wiring](ADR-0003%20Gapless%20Scoped%20Vault%20Path%20And%20Command%20Wiring.md), [ADR-0005 Restrict Scoped Hub Keys To NVNM](ADR-0005%20Restrict%20Scoped%20Hub%20Keys%20To%20NVNM.md), [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)
 
 > **Note (2026-08-24)**: **Rejected.** Superseded by [ADR-0012](ADR-0012%20Path%20Seeker%20Reconstruct%20Scope%20Then%20Closest.md), which reaches the same "scoped key signs the transaction" outcome **without** touching `@inveniam/events` or data-room/deals-service — the scope is already available to hub-service via the ambient request-context (see ADR-0012 Fact 3). The earlier interim ([ADR-0011](ADR-0011%20NVNM%20Org-Slot%20Key%20Promotion%20For%20Sync%20(Demo).md)) is likewise rejected. This ADR is retained only for its root-cause diagnosis (the two-Vault-reads finding).
 
@@ -134,4 +134,4 @@ resolveClosestHubCredentials(provider, ledgerType, organisationId, scopedPath?):
 - [ADR-0003 Gapless Scoped Vault Path And Command Wiring](ADR-0003%20Gapless%20Scoped%20Vault%20Path%20And%20Command%20Wiring.md)
 - [ADR-0005 Restrict Scoped Hub Keys To NVNM](ADR-0005%20Restrict%20Scoped%20Hub%20Keys%20To%20NVNM.md)
 - [HOW-TO Enable DLT Validation (NVNM)](HOW-TO%20Enable%20DLT%20Validation%20(NVNM).md)
-- [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)

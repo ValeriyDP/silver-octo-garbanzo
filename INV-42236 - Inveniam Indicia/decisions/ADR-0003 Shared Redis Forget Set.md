@@ -162,7 +162,7 @@ Nothing shipped yet. Grounding:
 
 ## Related
 
-- [Decision register](Inveniam%20Indicia%20(INV-42236)/decisions/INDEX.md)
+- [Decision register](INV-42236%20-%20Inveniam%20Indicia/decisions/INDEX.md)
 - [ADR-0004 Erasure Ledger as Lifecycle Event Log](ADR-0004%20Erasure%20Ledger%20as%20Lifecycle%20Event%20Log.md) — the follow-up §4 promised: un-forget + the one allowed recalculate, on a remodelled ledger
 - [ADR-0002 Forget Table Before Cache](ADR-0002%20Forget%20Table%20Before%20Cache.md)
 - [ADR-0001 Acknowledged Sidecar Cache Purge](ADR-0001%20Acknowledged%20Sidecar%20Cache%20Purge.md)

@@ -45,7 +45,7 @@ export interface ClientDLTTransactionPayload {
 }
 ```
 
-`taxonomyId` is required for IO. Hub `addRegistry` / `addRecord` do not use it. Without an existing `data_room_file_taxonomies` row at that primary key, IO cannot park `pending_document`, cannot emit a usable `HubDocumentSyncingSucceededEvent`, cannot run `updateStatusOnResponseFromLedger`, and cannot paint Synced. A fabricated UUID does not create the row. Measurabl cannot supply this id at emit today — [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) #14.
+`taxonomyId` is required for IO. Hub `addRegistry` / `addRecord` do not use it. Without an existing `data_room_file_taxonomies` row at that primary key, IO cannot park `pending_document`, cannot emit a usable `HubDocumentSyncingSucceededEvent`, cannot run `updateStatusOnResponseFromLedger`, and cannot paint Synced. A fabricated UUID does not create the row. Measurabl cannot supply this id at emit today — [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) #14.
 
 ## Out — `HubDocumentSyncingSucceededEvent` / `Failed` / `Pending`
 
@@ -67,7 +67,7 @@ export interface HubDocumentSyncingSucceededEventPayload {
 
 ## Out — `HubSymbolRegisteringSucceededEvent`
 
-Deal connected only. Not the file badge. `userId` / `userEmail` are required on the type; this path has no real IO user. Local `transactions.user_id` uses the sentinel in [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) #11 so the pending row can insert. deals-service already writes `userId ?? ''`.
+Deal connected only. Not the file badge. `userId` / `userEmail` are required on the type; this path has no real IO user. Local `transactions.user_id` uses the sentinel in [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) #11 so the pending row can insert. deals-service already writes `userId ?? ''`.
 
 ```ts
 export interface HubSymbolRegisteringSucceededEventPayload {
@@ -89,10 +89,10 @@ export interface HubSymbolRegisteringSucceededEventPayload {
 
 - [Measurabl Provisioning Handoff](Measurabl%20Provisioning%20Handoff.md)
 
-- [Wiki Index](Measurabl%20provision%20(INV-42559)/wiki/index.md)
+- [Wiki Index](INV-42559%20-%20Measurabl%20provision/wiki/index.md)
 - [Measurabl DLT Transaction](Measurabl%20DLT%20Transaction.md)
 - [Identity Wallet Signing](Identity%20Wallet%20Signing.md)
 - [IO UI File Synced Gaps](IO%20UI%20File%20Synced%20Gaps.md)
 - [Taxonomy Id Before Client DLT](Taxonomy%20Id%20Before%20Client%20DLT.md)
-- [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) #14
-- [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md)
+- [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) #14
+- [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md)

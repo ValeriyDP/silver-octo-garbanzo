@@ -17,7 +17,7 @@ tags:
 - **Date**: 2026-08-21
 - **Area**: hub-service
 - **Ticket**: `INV-42086` (branch `INV-42086-hub-keys-everywhere`)
-- **Related**: [ADR-0002 Per-Level Hub Key Endpoints](ADR-0002%20Per-Level%20Hub%20Key%20Endpoints.md), [ADR-0001 Scoped Add HUB Key](ADR-0001%20Scoped%20Add%20HUB%20Key.md), [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- **Related**: [ADR-0002 Per-Level Hub Key Endpoints](ADR-0002%20Per-Level%20Hub%20Key%20Endpoints.md), [ADR-0001 Scoped Add HUB Key](ADR-0001%20Scoped%20Add%20HUB%20Key.md), [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)
 
 ## Context
 
@@ -92,4 +92,4 @@ return [kv, 'data', entity, ...definedPrefix, ledgerType, networkType].join('/')
 
 - [ADR-0001 Scoped Add HUB Key](ADR-0001%20Scoped%20Add%20HUB%20Key.md)
 - [ADR-0002 Per-Level Hub Key Endpoints](ADR-0002%20Per-Level%20Hub%20Key%20Endpoints.md)
-- [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)

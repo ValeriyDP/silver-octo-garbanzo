@@ -76,4 +76,4 @@ It does **not** write to NVNM Chain. NVNM document anchoring is `hub-service` + 
 - [Metachain Write Path](Metachain%20Write%20Path.md)
 - [Payload Comparison Metachain vs NVNM](Payload%20Comparison%20Metachain%20vs%20NVNM.md)
 - [Metachain And NVNM Flow](Metachain%20And%20NVNM%20Flow.md)
-- [Wiki Index](Metachain%20(INV-42833)/wiki/index.md)
+- [Wiki Index](INV-42833%20-%20Metachain/wiki/index.md)

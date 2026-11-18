@@ -47,7 +47,7 @@ Case name is extra:
 - On chain, metadata carries `name` + `year` (and `cluster`). (source: docs/record-schema.md)
 - After a hit, `name_check` does a conservative token overlap between the brief's parties and the registry name. `mismatch` only when they share no significant token. It is a field, not a status. (source: check.py, docs/web-demo.md)
 
-The line "only the case name and citation number are required" is from an **external registry-maintenance** note, not from the Check UI. It describes how new cases might be added to court registries. It does not define lawyer uploads. See [Registry Maintenance](NVNM-Cite%20(INV-42043)/wiki/Registry%20Maintenance.md). For NVNM-Cite Check: **a recognizable case citation in extractable text is enough.** Case name helps the mismatch heuristic; it is not the lookup key. How lookup works: [How Check Finds Citations](NVNM-Cite%20(INV-42043)/wiki/How%20Check%20Finds%20Citations.md).
+The line "only the case name and citation number are required" is from an **external registry-maintenance** note, not from the Check UI. It describes how new cases might be added to court registries. It does not define lawyer uploads. See [Registry Maintenance](INV-42043%20-%20NVNM-Cite/wiki/Registry%20Maintenance.md). For NVNM-Cite Check: **a recognizable case citation in extractable text is enough.** Case name helps the mismatch heuristic; it is not the lookup key. How lookup works: [How Check Finds Citations](INV-42043%20-%20NVNM-Cite/wiki/How%20Check%20Finds%20Citations.md).
 
 ## 3. Citation *as written* does vary by court — the *key* does not
 
@@ -57,9 +57,9 @@ A citation that maps to a court with no on-chain registry is NOT_COVERED. That i
 
 ## Related pages
 
-- [How Check Finds Citations](NVNM-Cite%20(INV-42043)/wiki/How%20Check%20Finds%20Citations.md)
-- [Registry Maintenance](NVNM-Cite%20(INV-42043)/wiki/Registry%20Maintenance.md)
-- [Open Questions](NVNM-Cite%20(INV-42043)/wiki/Open%20Questions.md)
-- [Onboarding](NVNM-Cite%20(INV-42043)/wiki/Onboarding.md)
-- [Audience](NVNM-Cite%20(INV-42043)/wiki/Audience.md)
-- [Wiki Index](NVNM-Cite%20(INV-42043)/wiki/index.md)
+- [How Check Finds Citations](INV-42043%20-%20NVNM-Cite/wiki/How%20Check%20Finds%20Citations.md)
+- [Registry Maintenance](INV-42043%20-%20NVNM-Cite/wiki/Registry%20Maintenance.md)
+- [Open Questions](INV-42043%20-%20NVNM-Cite/wiki/Open%20Questions.md)
+- [Onboarding](INV-42043%20-%20NVNM-Cite/wiki/Onboarding.md)
+- [Audience](INV-42043%20-%20NVNM-Cite/wiki/Audience.md)
+- [Wiki Index](INV-42043%20-%20NVNM-Cite/wiki/index.md)

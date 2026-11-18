@@ -29,7 +29,7 @@ When a row becomes a decision, add the ADR and link it here. Leave the question 
 
 ## Related pages
 
-- [Wiki Index](Metachain%20(INV-42833)/wiki/index.md)
+- [Wiki Index](INV-42833%20-%20Metachain/wiki/index.md)
 - [Investigation Brief](Investigation%20Brief.md)
 - [Payload Comparison Metachain vs NVNM](Payload%20Comparison%20Metachain%20vs%20NVNM.md)
 - [Decision register](../decisions/INDEX.md)

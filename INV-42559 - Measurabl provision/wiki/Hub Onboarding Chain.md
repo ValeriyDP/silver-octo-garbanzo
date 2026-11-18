@@ -74,7 +74,7 @@ Email is `{portfolioId}@measurabl.com`. The portfolio chain uses a separate `Ens
 
 - [Measurabl Provisioning Handoff](Measurabl%20Provisioning%20Handoff.md)
 
-- [Wiki Index](Measurabl%20provision%20(INV-42559)/wiki/index.md)
+- [Wiki Index](INV-42559%20-%20Measurabl%20provision/wiki/index.md)
 - [DevOps How To Onboard Organisation](DevOps%20How%20To%20Onboard%20Organisation.md)
 - [Organisation Provisioning Sequence](Organisation%20Provisioning%20Sequence.md)
 - [Identity Wallet Signing](Identity%20Wallet%20Signing.md)

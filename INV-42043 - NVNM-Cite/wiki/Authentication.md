@@ -36,7 +36,7 @@ Eyecite is a library, not a login system. Nothing is “auth built around eyecit
 
 ## Related pages
 
-- [Audience](NVNM-Cite%20(INV-42043)/wiki/Audience.md)
-- [Web UI](NVNM-Cite%20(INV-42043)/wiki/Web%20UI.md)
-- [How Check Finds Citations](NVNM-Cite%20(INV-42043)/wiki/How%20Check%20Finds%20Citations.md)
-- [Wiki Index](NVNM-Cite%20(INV-42043)/wiki/index.md)
+- [Audience](INV-42043%20-%20NVNM-Cite/wiki/Audience.md)
+- [Web UI](INV-42043%20-%20NVNM-Cite/wiki/Web%20UI.md)
+- [How Check Finds Citations](INV-42043%20-%20NVNM-Cite/wiki/How%20Check%20Finds%20Citations.md)
+- [Wiki Index](INV-42043%20-%20NVNM-Cite/wiki/index.md)

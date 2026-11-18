@@ -33,7 +33,7 @@ When a row becomes a decision, add the ADR and link it here. Leave the question 
 
 ## Related pages
 
-- [Wiki Index](Inveniam%20Indicia%20(INV-42236)/wiki/index.md)
+- [Wiki Index](INV-42236%20-%20Inveniam%20Indicia/wiki/index.md)
 - [New Developer Onboarding](New%20Developer%20Onboarding.md)
 - [Core and Sidecar](Core%20and%20Sidecar.md)
 - [BYO Producer](BYO%20Producer.md)

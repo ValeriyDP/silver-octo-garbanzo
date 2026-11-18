@@ -27,7 +27,7 @@ When a row becomes a decision, add the ADR and link it here. Leave the question 
 ## Related pages
 
 - [Current Auth Flow](Current%20Auth%20Flow.md)
-- [Wiki Index](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/index.md)
-- [Decision register](Indicia%20Auth%20Investigation%20(INV-43085)/decisions/INDEX.md)
+- [Wiki Index](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/index.md)
+- [Decision register](INV-43085%20-%20Indicia%20Auth%20Investigation/decisions/INDEX.md)
 - [ADR-0001 Service Tokens for Ingest](ADR-0001%20Service%20Tokens%20for%20Ingest.md)
 - [Service Token Explanation](Service%20Token%20Explanation.md)

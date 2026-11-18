@@ -1216,8 +1216,8 @@ No ADR ids. No claim that sibling RAM is evicted.
 - `UPDATE` or `DELETE` on `erasure_events`; dropping `erasure_ledger` (later migration)
 - `SREM` of a single member (recalculate the key, or do nothing)
 - New Vault keys for old records; any "restore ciphertext"
-- Company / tenant door ([Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #7)
-- In-flight GET vs erase lock ([Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #6)
+- Company / tenant door ([Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #7)
+- In-flight GET vs erase lock ([Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #6)
 - A `completed` lifecycle event (needs a job first — [ADR-0004](../decisions/ADR-0004%20Erasure%20Ledger%20as%20Lifecycle%20Event%20Log.md) Alternatives)
 - A new audit table or `global_admin` on this door
 - `GET /v1/erasures` as a history of shreds and un-forgets (later; this change lists currently forgotten subjects only)
@@ -1249,7 +1249,7 @@ When stuck on a Go idiom: ask — teach, do not paste the finished sidecar.
 - [JIRA Tasks](JIRA%20Tasks.md) — Task 1 (this how-to; former Tasks 2 and 4 folded in); Task 3 docs (done)
 - [Write the Person Graveyard](Write%20the%20Person%20Graveyard.md) — the landing this follows
 - [QA Person Graveyard](QA%20Person%20Graveyard.md) — add an un-forget step when you implement
-- [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) — #5 and #9 (decided here), #6, #7
+- [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) — #5 and #9 (decided here), #6, #7
 - [Landing Review Findings](ADR-0003%20Landing%20Review%20Findings.md) — Finding 2 (the interim this exits)
 - [ADR-0003 Shared Redis Forget Set](../decisions/ADR-0003%20Shared%20Redis%20Forget%20Set.md) — §4 recalculate exception
-- [Wiki Index](Inveniam%20Indicia%20(INV-42236)/wiki/index.md)
+- [Wiki Index](INV-42236%20-%20Inveniam%20Indicia/wiki/index.md)

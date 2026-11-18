@@ -113,7 +113,7 @@ Nothing shipped yet. Grounding:
 
 ## Related
 
-- [Decision register](Inveniam%20Indicia%20(INV-42236)/decisions/INDEX.md)
+- [Decision register](INV-42236%20-%20Inveniam%20Indicia/decisions/INDEX.md)
 - [ADR-0003 Shared Redis Forget Set](ADR-0003%20Shared%20Redis%20Forget%20Set.md)
 - [ADR-0001 Acknowledged Sidecar Cache Purge](ADR-0001%20Acknowledged%20Sidecar%20Cache%20Purge.md)
 - [Slice 2c Tenant Offboard](../wiki/Slice%202c%20Tenant%20Offboard.md)

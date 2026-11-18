@@ -22,7 +22,7 @@ This project is **two linked wikis**, not one pile of notes.
 Use when the work is: understand a system, ingest a spec, write a how-to, draw a flow, capture current state, list open questions.
 
 - Immutable sources live in `raw/`. Never modify `raw/`.
-- Pages live in `wiki/`. Table of contents: [NVNM-Cite (INV-42043)/wiki/index](NVNM-Cite%20(INV-42043)/wiki/index.md). Change log: [NVNM-Cite (INV-42043)/wiki/log](NVNM-Cite%20(INV-42043)/wiki/log.md).
+- Pages live in `wiki/`. Table of contents: [NVNM-Cite (INV-42043)/wiki/index](INV-42043%20-%20NVNM-Cite/wiki/index.md). Change log: [NVNM-Cite (INV-42043)/wiki/log](INV-42043%20-%20NVNM-Cite/wiki/log.md).
 - One idea per page. Title Case filenames with spaces. YAML frontmatter (`name`, `date`, `tags`).
 - Every page: **Summary**, **Sources**, **Last updated**, then body, then **Related pages**.
 - Cite sources as `(source: filename)` after factual claims. Mark unverified claims.
@@ -33,9 +33,9 @@ Use when the work is: understand a system, ingest a spec, write a how-to, draw a
 Use when the work is: choose among options, lock a design, record why the code looks this way.
 
 - One decision per file: `ADR-0001 Short Title.md` (zero-padded). Never delete; supersede instead.
-- Copy [NVNM-Cite (INV-42043)/decisions/ADR Template](NVNM-Cite%20(INV-42043)/decisions/ADR%20Template.md). Fill Context → Decision → Alternatives → Consequences → Affected code → Related.
+- Copy [NVNM-Cite (INV-42043)/decisions/ADR Template](INV-42043%20-%20NVNM-Cite/decisions/ADR%20Template.md). Fill Context → Decision → Alternatives → Consequences → Affected code → Related.
 - Ground ADRs in real paths and types. Do not invent APIs from memory.
-- Register every ADR in [NVNM-Cite (INV-42043)/decisions/INDEX](NVNM-Cite%20(INV-42043)/decisions/INDEX.md). Append [NVNM-Cite (INV-42043)/decisions/log](NVNM-Cite%20(INV-42043)/decisions/log.md).
+- Register every ADR in [NVNM-Cite (INV-42043)/decisions/INDEX](INV-42043%20-%20NVNM-Cite/decisions/INDEX.md). Append [NVNM-Cite (INV-42043)/decisions/log](INV-42043%20-%20NVNM-Cite/decisions/log.md).
 - Status: `Proposed` · `Accepted` · `Superseded by [ADR-…](…)` · `Deprecated` · `Rejected` (kept for the record).
 
 ## When to use which
@@ -100,7 +100,7 @@ qmd update
 qmd embed -c nvnm-cite-inv-42043
 ```
 
-Or from this folder: `../_resources/scripts/qmd-sync.sh "$(pwd)"` (reads `qmd-collection`). First-time collection setup is in [README](NVNM-Cite%20(INV-42043)/README.md).
+Or from this folder: `../_resources/scripts/qmd-sync.sh "$(pwd)"` (reads `qmd-collection`). First-time collection setup is in [README](INV-42043%20-%20NVNM-Cite/README.md).
 
 ## Question answering
 

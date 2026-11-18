@@ -31,18 +31,18 @@ The normalizer is in the **trust boundary**. Receipts record its version. That m
 
 **Later choices stayed inside that frame:** stdlib HTTP server (no Flask/FastAPI), no new web runtime, pdfplumber as the PDF extractor, uv.lock pins. (source: DECISIONS.md 2026-06-11 / 2026-06-14)
 
-The UI is already not Python: vanilla JS. [Web UI](NVNM-Cite%20(INV-42043)/wiki/Web%20UI.md).
+The UI is already not Python: vanilla JS. [Web UI](INV-42043%20-%20NVNM-Cite/wiki/Web%20UI.md).
 
 ## Fair inference (not a quote)
 
 Python was the language that could import the one citation stack they refused to rewrite. Everything else (signer, loader, web server) was written to sit next to that.
 
-This investigation **closed** the language question: the project is locked to eyecite (see [Open Questions](NVNM-Cite%20(INV-42043)/wiki/Open%20Questions.md) Q5, closed 2026-09-01). A later language rewrite would still owe an ADR that deals with invariant 5 (one reference normalizer, versioned on every receipt).
+This investigation **closed** the language question: the project is locked to eyecite (see [Open Questions](INV-42043%20-%20NVNM-Cite/wiki/Open%20Questions.md) Q5, closed 2026-09-01). A later language rewrite would still owe an ADR that deals with invariant 5 (one reference normalizer, versioned on every receipt).
 
 ## Related pages
 
-- [Eyecite](NVNM-Cite%20(INV-42043)/wiki/Eyecite.md)
-- [How Check Finds Citations](NVNM-Cite%20(INV-42043)/wiki/How%20Check%20Finds%20Citations.md)
-- [Web UI](NVNM-Cite%20(INV-42043)/wiki/Web%20UI.md)
-- [Open Questions](NVNM-Cite%20(INV-42043)/wiki/Open%20Questions.md)
-- [Wiki Index](NVNM-Cite%20(INV-42043)/wiki/index.md)
+- [Eyecite](INV-42043%20-%20NVNM-Cite/wiki/Eyecite.md)
+- [How Check Finds Citations](INV-42043%20-%20NVNM-Cite/wiki/How%20Check%20Finds%20Citations.md)
+- [Web UI](INV-42043%20-%20NVNM-Cite/wiki/Web%20UI.md)
+- [Open Questions](INV-42043%20-%20NVNM-Cite/wiki/Open%20Questions.md)
+- [Wiki Index](INV-42043%20-%20NVNM-Cite/wiki/index.md)

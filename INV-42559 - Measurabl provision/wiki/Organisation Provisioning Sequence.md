@@ -358,7 +358,7 @@ Webhook and status poll can both call `onComplete`. The second is skipped when t
 
 - [Measurabl Provisioning Handoff](Measurabl%20Provisioning%20Handoff.md)
 
-- [Wiki Index](Measurabl%20provision%20(INV-42559)/wiki/index.md)
+- [Wiki Index](INV-42559%20-%20Measurabl%20provision/wiki/index.md)
 - [Organisation Provisioning Chain](Hub%20Onboarding%20Chain.md)
 - [Identity Wallet Signing](Identity%20Wallet%20Signing.md)
 - [Hub User JWT Endpoints](Hub%20User%20JWT%20Endpoints.md)

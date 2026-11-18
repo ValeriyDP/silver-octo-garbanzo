@@ -29,7 +29,7 @@ The two holes map exactly to the repo's security findings: hole 1 = **DATA-PROTE
 
 ## Finding 1 — Heal poisoning with a global key + per-company hydrate — **DECIDED**
 
-**Status: decided 2026-09-03** ([Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #8): keep one plain global set; heal hydrates **all** rows via a new store method `ListAllErasures(ctx)` (no company filter). No per-company key split — the forget-list is expected to stay small. Reopen #8 only if the set grows big enough that full hydrate hurts; per-company sharding (`sidecar:forgotten:{company_id}`, matching the `idem:{tenant}:` convention) is the known escape.
+**Status: decided 2026-09-03** ([Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #8): keep one plain global set; heal hydrates **all** rows via a new store method `ListAllErasures(ctx)` (no company filter). No per-company key split — the forget-list is expected to stay small. Reopen #8 only if the set grows big enough that full hydrate hurts; per-company sharding (`sidecar:forgotten:{company_id}`, matching the `idem:{tenant}:` convention) is the known escape.
 
 **The bug that forced the decision.** The draft heal used `ListErasures(companyID)` — the only listing the store has, and it is per-tenant. With one global key, walk a Redis flush with two tenants:
 
@@ -43,7 +43,7 @@ The two holes map exactly to the repo's security findings: hole 1 = **DATA-PROTE
 
 ## Finding 2 — Ingest refuse contradicts decision D3 — **DEFERRED to future work (2026-09-03)**
 
-**Status: accepted as interim, resolved by the un-forget follow-up.** Decision (investigation owner, 2026-09-03): this is not part of the ADR-0003 change. Until un-forget ships, erasure behaves as a permanent processing ban for that identifier — old records unreadable (by design, irreversible) **and** no new key can be minted, because the ledger row / graveyard member blocks ingest. The exit is [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #5; the JIRA-ready task is [JIRA Tasks](JIRA%20Tasks.md) Task 1, to be filed **after** the ADR-0003 PR merges. Residual risk: a reviewer citing D3 may still object to the interim state — point them at this finding and the drafted follow-up.
+**Status: accepted as interim, resolved by the un-forget follow-up.** Decision (investigation owner, 2026-09-03): this is not part of the ADR-0003 change. Until un-forget ships, erasure behaves as a permanent processing ban for that identifier — old records unreadable (by design, irreversible) **and** no new key can be minted, because the ledger row / graveyard member blocks ingest. The exit is [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #5; the JIRA-ready task is [JIRA Tasks](JIRA%20Tasks.md) Task 1, to be filed **after** the ADR-0003 PR merges. Residual risk: a reviewer citing D3 may still object to the interim state — point them at this finding and the drafted follow-up.
 
 The strongest conflict in the repo docs. `docs/plans/DECISION_SET_2026-08-10_VERIFY_ERASURE_RBAC.md`, D3 note (verbatim):
 
@@ -54,7 +54,7 @@ Reinforced twice more:
 - `docs/plans/SEPARATION_OF_CONCERNS_SLICE_2B_RECORD_STORE.md` §8.2 records remint as an **accepted limitation**: "An erased subject re-provisions on write… GDPR-correct — erasure is not a processing ban."
 - `docs/plans/CRYPTO_SHRED_COMPLIANCE_EXPLAINER.md` §8 makes the same policy statement.
 
-Then the security assessment (2026-08-17, **after** D3) flagged remint as DATA-PROTECTION-002 with three remediation options: "refuse writes **or** require explicit re-consent/un-erase **or** at minimum flag/audit re-provisioning." ADR-0003 picked **refuse**, with un-forget parked as [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #5.
+Then the security assessment (2026-08-17, **after** D3) flagged remint as DATA-PROTECTION-002 with three remediation options: "refuse writes **or** require explicit re-consent/un-erase **or** at minimum flag/audit re-provisioning." ADR-0003 picked **refuse**, with un-forget parked as [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #5.
 
 **The tension**: refuse-without-un-forget is *stricter than GDPR requires* and reverses D3's written policy. A person erased once can never lawfully appear again until Open Questions #5 ships. A reviewer citing D3 can bounce the landing PR.
 
@@ -128,8 +128,8 @@ Related trade already conceded in ADR-0003's consequences: "every content read/w
 
 | # | Finding | Status | Where it lives |
 | - | ------- | ------ | -------------- |
-| 1 | Heal poisoning (global key + per-company hydrate) | **Decided** — `ListAllErasures`, global key | [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #8; ADR-0003 R3 note; how-to Step 2 |
-| 2 | Ingest refuse vs D3 "re-appearance" policy | **Deferred — future work; JIRA drafted** | [JIRA Tasks](JIRA%20Tasks.md) Task 1; [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #5 |
+| 1 | Heal poisoning (global key + per-company hydrate) | **Decided** — `ListAllErasures`, global key | [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #8; ADR-0003 R3 note; how-to Step 2 |
+| 2 | Ingest refuse vs D3 "re-appearance" policy | **Deferred — future work; JIRA drafted** | [JIRA Tasks](JIRA%20Tasks.md) Task 1; [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #5 |
 | 3 | `cache_purged` honesty (DP-001 wording) | **Outdated — field retired in Task 1 / ADR-0004 (not made honest)** | [JIRA Tasks](JIRA%20Tasks.md) Task 1 |
 | 4 | Ingest status code + refusal log | **Decided — 410 `subject_erased`**; doc half → Task 3 | how-to Step 6; [JIRA Tasks](JIRA%20Tasks.md) Task 3 |
 | 5 | Redis on the read path — ops/API docs | **Moved to JIRA — Task 3** (file alongside landing PR) | [JIRA Tasks](JIRA%20Tasks.md) Task 3 |
@@ -139,8 +139,8 @@ Related trade already conceded in ADR-0003's consequences: "every content read/w
 
 - [Write the Person Graveyard](Write%20the%20Person%20Graveyard.md) — the how-to these findings amended
 - [ADR-0003 Shared Redis Forget Set](../decisions/ADR-0003%20Shared%20Redis%20Forget%20Set.md)
-- [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) — #5 un-forget, #6 R2 window, #7 company door, #8 heal scope (decided)
+- [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) — #5 un-forget, #6 R2 window, #7 company door, #8 heal scope (decided)
 - [Slice 2c Tenant Offboard](Slice%202c%20Tenant%20Offboard.md)
 - [TOCTOU](TOCTOU.md)
-- [Wiki Index](Inveniam%20Indicia%20(INV-42236)/wiki/index.md)
+- [Wiki Index](INV-42236%20-%20Inveniam%20Indicia/wiki/index.md)
 - [Decision register](../decisions/INDEX.md)

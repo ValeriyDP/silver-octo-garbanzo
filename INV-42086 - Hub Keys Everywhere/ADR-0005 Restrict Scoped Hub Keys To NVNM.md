@@ -17,7 +17,7 @@ tags:
 - **Date**: 2026-08-22
 - **Area**: hub-service + inveniam-v2 UI
 - **Ticket**: `INV-42086` (branch `INV-42086-hub-keys-everywhere`)
-- **Related**: [ADR-0004 Scoped Hub Key Events](ADR-0004%20Scoped%20Hub%20Key%20Events.md), [ADR-0002 Per-Level Hub Key Endpoints](ADR-0002%20Per-Level%20Hub%20Key%20Endpoints.md), [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- **Related**: [ADR-0004 Scoped Hub Key Events](ADR-0004%20Scoped%20Hub%20Key%20Events.md), [ADR-0002 Per-Level Hub Key Endpoints](ADR-0002%20Per-Level%20Hub%20Key%20Endpoints.md), [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)
 
 ## Context
 
@@ -70,4 +70,4 @@ Restrict the scoped hub-key surface to `HubLedgerTypeEnum.NVNM` on both sides. O
 
 - [ADR-0002 Per-Level Hub Key Endpoints](ADR-0002%20Per-Level%20Hub%20Key%20Endpoints.md)
 - [ADR-0004 Scoped Hub Key Events](ADR-0004%20Scoped%20Hub%20Key%20Events.md)
-- [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)

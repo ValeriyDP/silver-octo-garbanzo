@@ -93,7 +93,7 @@ Phase B is the load-bearing fix. A/B together make sync work for an already-regi
 - **Tests.** A: projection persist (create/update/move) + root derivation. B: resolver projection-hit / walk-fallback / org-last / rethrow, and the `onComplete` path resolves the scoped key. C: create-if-missing, register→wait→sync happy path.
 - **Deploy order.** A → B → C. A and B are backend-only (hub-service); ship + verify before the C UI. No shared-event or cross-service schema changes (that's the whole point vs rejected ADR-0010).
 - **NVNM-only guardrails.** Every branch added must no-op for non-NVNM ledgers (matches ADR-0005/0007).
-- **Keep docs live.** Update each ADR's status to `Accepted (implemented)` and append to [log](Hub%20Keys%20Everywhere%20(INV-42086)/log.md) as phases land; refresh the [HOW-TO](HOW-TO%20Enable%20DLT%20Validation%20(NVNM).md) as nuances surface.
+- **Keep docs live.** Update each ADR's status to `Accepted (implemented)` and append to [log](INV-42086%20-%20Hub%20Keys%20Everywhere/log.md) as phases land; refresh the [HOW-TO](HOW-TO%20Enable%20DLT%20Validation%20(NVNM).md) as nuances surface.
 
 ## Minimal path (if you only need one deal working now)
 
@@ -106,4 +106,4 @@ The `deal_scope` table + resolver (Phase A + B) makes an **already-registered** 
 - [ADR-0013 Local Deal To Portfolio Projection For Scope Resolution](ADR-0013%20Local%20Deal%20To%20Portfolio%20Projection%20For%20Scope%20Resolution.md)
 - [ADR-0007 Server-Side Closest Hub Key Resolution](ADR-0007%20Server-Side%20Closest%20Hub%20Key%20Resolution.md)
 - [HOW-TO Enable DLT Validation (NVNM)](HOW-TO%20Enable%20DLT%20Validation%20(NVNM).md)
-- [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)

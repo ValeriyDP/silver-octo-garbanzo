@@ -234,6 +234,6 @@ Append a dated row when Vault, Helm, env, or tables for this flow change. Newest
 
 ## Related pages
 
-- [Wiki Index](Measurabl%20provision%20(INV-42559)/wiki/index.md)
+- [Wiki Index](INV-42559%20-%20Measurabl%20provision/wiki/index.md)
 - [Organisation Provisioning Chain](Hub%20Onboarding%20Chain.md)
-- [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) (#10 TSE decrypt)
+- [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) (#10 TSE decrypt)

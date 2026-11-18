@@ -227,6 +227,6 @@ After this PR lands on the feature branch, the feature tree matches `INV-42559-m
 
 ## Related pages
 
-- [Wiki Index](Measurabl%20provision%20(INV-42559)/wiki/index.md)
+- [Wiki Index](INV-42559%20-%20Measurabl%20provision/wiki/index.md)
 - [Split Branch Into PRs Agent Playbook](Split%20Branch%20Into%20PRs%20Agent%20Playbook.md)
 - [Sequential PR Stack](Sequential%20PR%20Stack.md)

@@ -55,11 +55,11 @@ On load: `initTabs`, `initCheck`, `initWallet`, `initRecord`, `initVerify`, `ini
 
 ## Related pages
 
-- [Backend](NVNM-Cite%20(INV-42043)/wiki/Backend.md) — stdlib HTTP server; no web framework
-- [Authentication](NVNM-Cite%20(INV-42043)/wiki/Authentication.md) — no login; wallet is for signing only
-- [Open Questions](NVNM-Cite%20(INV-42043)/wiki/Open%20Questions.md) — Q1: could we use a modern frontend framework?
-- [Onboarding](NVNM-Cite%20(INV-42043)/wiki/Onboarding.md)
-- [Run Locally](NVNM-Cite%20(INV-42043)/wiki/Run%20Locally.md)
-- [Audience](NVNM-Cite%20(INV-42043)/wiki/Audience.md)
-- [Wiki Index](NVNM-Cite%20(INV-42043)/wiki/index.md)
-- [GA Events](NVNM-Cite%20(INV-42554)/GA%20Events.md) — INV-42554 event list for this page
+- [Backend](INV-42043%20-%20NVNM-Cite/wiki/Backend.md) — stdlib HTTP server; no web framework
+- [Authentication](INV-42043%20-%20NVNM-Cite/wiki/Authentication.md) — no login; wallet is for signing only
+- [Open Questions](INV-42043%20-%20NVNM-Cite/wiki/Open%20Questions.md) — Q1: could we use a modern frontend framework?
+- [Onboarding](INV-42043%20-%20NVNM-Cite/wiki/Onboarding.md)
+- [Run Locally](INV-42043%20-%20NVNM-Cite/wiki/Run%20Locally.md)
+- [Audience](INV-42043%20-%20NVNM-Cite/wiki/Audience.md)
+- [Wiki Index](INV-42043%20-%20NVNM-Cite/wiki/index.md)
+- [GA Events](INV-42554%20-%20NVNM-Cite/GA%20Events.md) — INV-42554 event list for this page

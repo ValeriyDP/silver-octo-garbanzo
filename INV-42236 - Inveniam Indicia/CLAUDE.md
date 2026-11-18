@@ -130,7 +130,7 @@ Same turn, always:
 
 - Link from the ADR **Related** and from the JIRA task’s vault (not copy-into-JIRA) section.
 - Mark decided Open Questions; do not leave a live fork that the how-to already pinned.
-- [wiki/index.md](Inveniam%20Indicia%20(INV-42236)/wiki/index.md) + [wiki/log.md](Inveniam%20Indicia%20(INV-42236)/wiki/log.md), then `qmd update && qmd embed -c inveniam-indicia`.
+- [wiki/index.md](INV-42236%20-%20Inveniam%20Indicia/wiki/index.md) + [wiki/log.md](INV-42236%20-%20Inveniam%20Indicia/wiki/log.md), then `qmd update && qmd embed -c inveniam-indicia`.
 - If a QA companion is needed, it is a **new** page, not a section stuffed into the how-to.
 
 When the human is implementing: review against the file map and the iron rules; teach; do not apply the fix unless asked.

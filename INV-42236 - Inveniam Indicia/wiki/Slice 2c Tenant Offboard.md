@@ -277,7 +277,7 @@ Related but already reachable (not latent): `internal-keyvault-3` / DATA-PROTECT
 
 Slice 2c is: make whole-tenant death real, and make every replica believe it.
 
-How replicas learn “forgotten”: [ADR-0003 Shared Redis Forget Set](../decisions/ADR-0003%20Shared%20Redis%20Forget%20Set.md) (**Accepted**). This feature = person graveyard + Redis set for the **existing** erase door. Company HTTP door / tenant walk is **out of this feature** ([Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #7); §3b is the later contract. Not implemented yet.
+How replicas learn “forgotten”: [ADR-0003 Shared Redis Forget Set](../decisions/ADR-0003%20Shared%20Redis%20Forget%20Set.md) (**Accepted**). This feature = person graveyard + Redis set for the **existing** erase door. Company HTTP door / tenant walk is **out of this feature** ([Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #7); §3b is the later contract. Not implemented yet.
 
 ## Related pages
 
@@ -290,6 +290,6 @@ How replicas learn “forgotten”: [ADR-0003 Shared Redis Forget Set](../decisi
 - [TOCTOU](TOCTOU.md)
 - [Write the Person Graveyard](Write%20the%20Person%20Graveyard.md)
 - [Repository Docs](Repository%20Docs.md)
-- [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md)
-- [Wiki Index](Inveniam%20Indicia%20(INV-42236)/wiki/index.md)
+- [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md)
+- [Wiki Index](INV-42236%20-%20Inveniam%20Indicia/wiki/index.md)
 - [Decision register](../decisions/INDEX.md)

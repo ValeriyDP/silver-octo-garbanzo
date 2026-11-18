@@ -14,7 +14,7 @@ tags:
 - **Date**: YYYY-MM-DD
 - **Area**: <service / UI / platform>
 - **Deciders**: <names / roles>
-- **Related**: [ADR-…](ADR-….md), [wiki page](NVNM-Cite%20(INV-42043)/wiki/Open%20Questions.md), tickets
+- **Related**: [ADR-…](ADR-….md), [wiki page](INV-42043%20-%20NVNM-Cite/wiki/Open%20Questions.md), tickets
 
 ## Context
 
@@ -43,5 +43,5 @@ What we decided, stated plainly. Enough shape (types, endpoints, components) to 
 
 ## Related
 
-- [Decision register](NVNM-Cite%20(INV-42043)/decisions/INDEX.md)
-- [Wiki](NVNM-Cite%20(INV-42043)/wiki/index.md)
+- [Decision register](INV-42043%20-%20NVNM-Cite/decisions/INDEX.md)
+- [Wiki](INV-42043%20-%20NVNM-Cite/wiki/index.md)

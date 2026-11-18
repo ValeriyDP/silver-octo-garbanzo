@@ -17,7 +17,7 @@ tags:
 
 ---
 
-This page was missing from the wiki until now. [How Check Finds Citations](NVNM-Cite%20(INV-42043)/wiki/How%20Check%20Finds%20Citations.md) only named the shape. The conversion rules live in the app spec (`cite-canonical/v1`). Full text: `nvnm/nvnm-cite/docs/canonical-citation-spec.md`. Goldens: `tests/golden/normalizer/`.
+This page was missing from the wiki until now. [How Check Finds Citations](INV-42043%20-%20NVNM-Cite/wiki/How%20Check%20Finds%20Citations.md) only named the shape. The conversion rules live in the app spec (`cite-canonical/v1`). Full text: `nvnm/nvnm-cite/docs/canonical-citation-spec.md`. Goldens: `tests/golden/normalizer/`.
 
 ## The standard form
 
@@ -69,13 +69,13 @@ They have no first page. They inherit the antecedent’s key in the same documen
 
 ## Court / registry (not the key)
 
-Parentheticals (`11th Cir.`, California `Name (Court Year) cite`) pick **which registry** to read. They do not change the key string. Bare `F.3d` with no court → key is still computed, registry is **AMBIGUOUS** (never guess). Mapping rules are long (state parentheticals, family sweeps); they bump `NORMALIZER_VERSION`, not `cite-canonical-v1`. See spec §4 and [How Check Finds Citations](NVNM-Cite%20(INV-42043)/wiki/How%20Check%20Finds%20Citations.md).
+Parentheticals (`11th Cir.`, California `Name (Court Year) cite`) pick **which registry** to read. They do not change the key string. Bare `F.3d` with no court → key is still computed, registry is **AMBIGUOUS** (never guess). Mapping rules are long (state parentheticals, family sweeps); they bump `NORMALIZER_VERSION`, not `cite-canonical-v1`. See spec §4 and [How Check Finds Citations](INV-42043%20-%20NVNM-Cite/wiki/How%20Check%20Finds%20Citations.md).
 
 Where eyecite and the spec disagree, **the spec wins**. (source: spec §8)
 
 ## Related pages
 
-- [How Check Finds Citations](NVNM-Cite%20(INV-42043)/wiki/How%20Check%20Finds%20Citations.md)
-- [Eyecite](NVNM-Cite%20(INV-42043)/wiki/Eyecite.md)
-- [Uploaded Documents](NVNM-Cite%20(INV-42043)/wiki/Uploaded%20Documents.md)
-- [Wiki Index](NVNM-Cite%20(INV-42043)/wiki/index.md)
+- [How Check Finds Citations](INV-42043%20-%20NVNM-Cite/wiki/How%20Check%20Finds%20Citations.md)
+- [Eyecite](INV-42043%20-%20NVNM-Cite/wiki/Eyecite.md)
+- [Uploaded Documents](INV-42043%20-%20NVNM-Cite/wiki/Uploaded%20Documents.md)
+- [Wiki Index](INV-42043%20-%20NVNM-Cite/wiki/index.md)

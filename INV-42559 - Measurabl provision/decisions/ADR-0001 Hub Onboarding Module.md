@@ -56,7 +56,7 @@ It owns login (`POST /auth/login`), holds the admin HubJWT, and calls Hub to cre
 
 - [Measurabl Provisioning Handoff](../wiki/Measurabl%20Provisioning%20Handoff.md)
 
-- [Decision register](Measurabl%20provision%20(INV-42559)/decisions/INDEX.md)
+- [Decision register](INV-42559%20-%20Measurabl%20provision/decisions/INDEX.md)
 - [Hub Onboarding Chain](../wiki/Hub%20Onboarding%20Chain.md)
 - [Hub Service Anchor Projector Sequence](../wiki/Hub%20Service%20Anchor%20Projector%20Sequence.md)
 - [Wiki Index](../wiki/index.md)

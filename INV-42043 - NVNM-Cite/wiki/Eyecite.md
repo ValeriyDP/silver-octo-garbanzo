@@ -40,7 +40,7 @@ clean_text  →  get_citations  →  resolve_citations
 
 Then the project builds a first-page key: `<volume> <corrected_reporter()> <page>` (e.g. `410 U.S. 113`) and maps a registry. (source: canonical.py)
 
-That is step 2 of [How Check Finds Citations](NVNM-Cite%20(INV-42043)/wiki/How%20Check%20Finds%20Citations.md). Eyecite never queries NVNM Chain.
+That is step 2 of [How Check Finds Citations](INV-42043%20-%20NVNM-Cite/wiki/How%20Check%20Finds%20Citations.md). Eyecite never queries NVNM Chain.
 
 ## What it is not
 
@@ -55,18 +55,18 @@ That is step 2 of [How Check Finds Citations](NVNM-Cite%20(INV-42043)/wiki/How%2
 
 It is a **wrapper**, not a blind import. The open spec (`cite-canonical/v1`) is the contract. Golden tests pin behavior against eyecite 2.7.6. When eyecite is wrong, this repo patches it and the spec wins.
 
-**For the product as a whole: no.** Existence proof is the keyed chain read. Receipts, wallets, the stdlib signer, and the static page do not go through eyecite. Swap the parser and you still need the same chain key shape — but you would owe a normalizer version bump and a new receipt trail. [How Check Finds Citations](NVNM-Cite%20(INV-42043)/wiki/How%20Check%20Finds%20Citations.md).
+**For the product as a whole: no.** Existence proof is the keyed chain read. Receipts, wallets, the stdlib signer, and the static page do not go through eyecite. Swap the parser and you still need the same chain key shape — but you would owe a normalizer version bump and a new receipt trail. [How Check Finds Citations](INV-42043%20-%20NVNM-Cite/wiki/How%20Check%20Finds%20Citations.md).
 
 ## Why it matters here
 
-CLAUDE.md: never write a citation parser from scratch. The normalizer is in the trust boundary; receipts record `normalizer_version`. That is the inferential reason the app is Python. [Why Python](NVNM-Cite%20(INV-42043)/wiki/Why%20Python.md).
+CLAUDE.md: never write a citation parser from scratch. The normalizer is in the trust boundary; receipts record `normalizer_version`. That is the inferential reason the app is Python. [Why Python](INV-42043%20-%20NVNM-Cite/wiki/Why%20Python.md).
 
 A TypeScript port exists (`eyecite-js`). This checkout does not use it. (unverified whether it matches 2.7.6 behavior)
 
 ## Related pages
 
-- [Canonical Citation](NVNM-Cite%20(INV-42043)/wiki/Canonical%20Citation.md)
-- [How Check Finds Citations](NVNM-Cite%20(INV-42043)/wiki/How%20Check%20Finds%20Citations.md)
-- [Why Python](NVNM-Cite%20(INV-42043)/wiki/Why%20Python.md)
-- [Uploaded Documents](NVNM-Cite%20(INV-42043)/wiki/Uploaded%20Documents.md)
-- [Wiki Index](NVNM-Cite%20(INV-42043)/wiki/index.md)
+- [Canonical Citation](INV-42043%20-%20NVNM-Cite/wiki/Canonical%20Citation.md)
+- [How Check Finds Citations](INV-42043%20-%20NVNM-Cite/wiki/How%20Check%20Finds%20Citations.md)
+- [Why Python](INV-42043%20-%20NVNM-Cite/wiki/Why%20Python.md)
+- [Uploaded Documents](INV-42043%20-%20NVNM-Cite/wiki/Uploaded%20Documents.md)
+- [Wiki Index](INV-42043%20-%20NVNM-Cite/wiki/index.md)

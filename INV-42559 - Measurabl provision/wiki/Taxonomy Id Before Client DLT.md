@@ -10,7 +10,7 @@ tags:
 
 # Taxonomy Id Before Client DLT
 
-**Summary**: **Problem to solve.** `ClientDLTTransaction` requires `taxonomyId` and a data-room taxonomy row. Upload does not create that row. The view-file URL has `fileId` + `dealId` only. Measurabl cannot know `taxonomyId` at emit time. Open: [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) #14.
+**Summary**: **Problem to solve.** `ClientDLTTransaction` requires `taxonomyId` and a data-room taxonomy row. Upload does not create that row. The view-file URL has `fileId` + `dealId` only. Measurabl cannot know `taxonomyId` at emit time. Open: [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) #14.
 
 **Sources**: Live check 2026-09-22 — `GET /dataroom/taxonomies/{fileId}` empty after upload; `view-file/{fileId}?id={dealId}`; `requestChecksumVerification` / `UpdateDataRoomFileTaxonomyCommand`; [Event Payloads](Event%20Payloads.md); [IO UI File Synced Gaps](IO%20UI%20File%20Synced%20Gaps.md).
 
@@ -60,8 +60,8 @@ Recommend **B or C**. Promote to an ADR when someone picks.
 
 ## Related pages
 
-- [Wiki Index](Measurabl%20provision%20(INV-42559)/wiki/index.md)
-- [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) #14
+- [Wiki Index](INV-42559%20-%20Measurabl%20provision/wiki/index.md)
+- [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) #14
 - [Open Questions Agenda](Open%20Questions%20Agenda.md)
 - [Event Payloads](Event%20Payloads.md)
 - [IO UI File Synced Gaps](IO%20UI%20File%20Synced%20Gaps.md)

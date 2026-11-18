@@ -133,7 +133,7 @@ Sync reuses the same Path Seeker credential resolve (`syncDocument` + `onComplet
 
 ## Related
 
-- [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)
 - [IMPLEMENTATION PLAN Scoped NVNM Sign And Register](IMPLEMENTATION%20PLAN%20Scoped%20NVNM%20Sign%20And%20Register.md)
 - [HOW-TO Enable DLT Validation (NVNM)](HOW-TO%20Enable%20DLT%20Validation%20(NVNM).md)
 - [ADR-0009 In-App NVNM Register Symbol Flow](ADR-0009%20In-App%20NVNM%20Register%20Symbol%20Flow.md)

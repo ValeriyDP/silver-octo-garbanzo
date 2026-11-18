@@ -52,7 +52,7 @@ It is also not a general-purpose NVNM Chain wallet or explorer. Transaction insp
 
 ## Related pages
 
-- [Onboarding](NVNM-Cite%20(INV-42043)/wiki/Onboarding.md)
-- [Prerequisites](NVNM-Cite%20(INV-42043)/wiki/Prerequisites.md)
-- [Run Locally](NVNM-Cite%20(INV-42043)/wiki/Run%20Locally.md)
-- [Wiki Index](NVNM-Cite%20(INV-42043)/wiki/index.md)
+- [Onboarding](INV-42043%20-%20NVNM-Cite/wiki/Onboarding.md)
+- [Prerequisites](INV-42043%20-%20NVNM-Cite/wiki/Prerequisites.md)
+- [Run Locally](INV-42043%20-%20NVNM-Cite/wiki/Run%20Locally.md)
+- [Wiki Index](INV-42043%20-%20NVNM-Cite/wiki/index.md)

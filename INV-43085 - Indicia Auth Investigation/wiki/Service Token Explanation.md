@@ -49,6 +49,6 @@ We postponed the change. Issuing keys outside FusionAuth was considered so a pro
 ## Related pages
 
 - [Current Auth Flow](Current%20Auth%20Flow.md)
-- [Open Questions](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/Open%20Questions.md)
+- [Open Questions](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/Open%20Questions.md)
 - [ADR-0001 Service Tokens for Ingest](ADR-0001%20Service%20Tokens%20for%20Ingest.md)
-- [Wiki Index](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/index.md)
+- [Wiki Index](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/index.md)

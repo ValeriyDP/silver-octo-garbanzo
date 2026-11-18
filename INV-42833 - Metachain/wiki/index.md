@@ -24,7 +24,7 @@ Decisions live in [decisions/INDEX](../decisions/INDEX.md). Cross-link; do not c
 - [How File Shows As Synced](How%20File%20Shows%20As%20Synced.md) — Taxonomy badge / deal-log “synced”, not event hashing.
 - [Event Hash vs File Taxonomy](Event%20Hash%20vs%20File%20Taxonomy.md) — The two Metachain writes side by side.
 - [Event Publish Volume](Event%20Publish%20Volume.md) — Daily Nest `Event published` counts, 2026-09-07 to 2026-10-05; median 37,552.
-- [Open Questions](Metachain%20(INV-42833)/wiki/Open%20Questions.md) — Questions that are not decisions yet.
+- [Open Questions](INV-42833%20-%20Metachain/wiki/Open%20Questions.md) — Questions that are not decisions yet.
 
 ## Related
 

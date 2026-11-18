@@ -62,7 +62,7 @@ They do not run our FusionAuth cluster and do not receive our root token. They r
 
 If the client will not take a FusionAuth-issued writer token, **there is no implemented ingest.** The hash-only door is ready; the credential is not a shipped product.
 
-Parked as [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #3 and #4.
+Parked as [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #3 and #4.
 
 ## Hashing — Go only
 
@@ -82,7 +82,7 @@ Local fixtures that exercise the **core** writer path (not a BYO SDK): `producer
 
 - [Core and Sidecar](Core%20and%20Sidecar.md)
 - [New Developer Onboarding](New%20Developer%20Onboarding.md)
-- [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md)
+- [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md)
 - [Repository Docs](Repository%20Docs.md)
-- [Wiki Index](Inveniam%20Indicia%20(INV-42236)/wiki/index.md)
+- [Wiki Index](INV-42236%20-%20Inveniam%20Indicia/wiki/index.md)
 - [Decision register](../decisions/INDEX.md)

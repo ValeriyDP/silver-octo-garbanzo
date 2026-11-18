@@ -114,7 +114,7 @@ uv run pytest
 
 ## Related pages
 
-- [Onboarding](NVNM-Cite%20(INV-42043)/wiki/Onboarding.md)
-- [Prerequisites](NVNM-Cite%20(INV-42043)/wiki/Prerequisites.md)
-- [Audience](NVNM-Cite%20(INV-42043)/wiki/Audience.md)
-- [Wiki Index](NVNM-Cite%20(INV-42043)/wiki/index.md)
+- [Onboarding](INV-42043%20-%20NVNM-Cite/wiki/Onboarding.md)
+- [Prerequisites](INV-42043%20-%20NVNM-Cite/wiki/Prerequisites.md)
+- [Audience](INV-42043%20-%20NVNM-Cite/wiki/Audience.md)
+- [Wiki Index](INV-42043%20-%20NVNM-Cite/wiki/index.md)

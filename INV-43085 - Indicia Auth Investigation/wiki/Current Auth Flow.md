@@ -201,13 +201,13 @@ Each line below is a recorded decision or a comment that repeats one. This page 
 
 **D5d's "sidecar service account" is not what the code does.** D5d says writer-class core credentials are machine identities, "the sidecar's service account today; BYO producers tomorrow" (source: `docs/plans/DECISION_SET_2026-08-10_VERIFY_ERASURE_RBAC.md` D5d). The shipped managed path forwards the producer's `writer` JWT. No sidecar process credential is minted. Read D5d as "a human is not the writer on the core." The mechanism is the forwarded producer token.
 
-**`global_admin` can still ingest plaintext.** `RequireWriter` admits `global_admin`. If that token also carries a non-empty `company_id`, `requireTenant` lets it through `POST /v1/events`. D5c already keeps `global_admin` off the read door. Backlog item `internal-api-3` calls an admin identity on the plaintext ingest door a design violation and proposes narrowing the ingest gate, conditional on FusionAuth being able to issue `global_admin` with a `company_id` (source: `docs/plans/SECURITY_ASSESSMENT_2026-08-14_BACKLOG.md`). Tracked in [Open Questions](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/Open%20Questions.md). Not decided here.
+**`global_admin` can still ingest plaintext.** `RequireWriter` admits `global_admin`. If that token also carries a non-empty `company_id`, `requireTenant` lets it through `POST /v1/events`. D5c already keeps `global_admin` off the read door. Backlog item `internal-api-3` calls an admin identity on the plaintext ingest door a design violation and proposes narrowing the ingest gate, conditional on FusionAuth being able to issue `global_admin` with a `company_id` (source: `docs/plans/SECURITY_ASSESSMENT_2026-08-14_BACKLOG.md`). Tracked in [Open Questions](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/Open%20Questions.md). Not decided here.
 
 ## Related pages
 
 - [Auth Doors](Auth%20Doors.excalidraw.md)
-- [Open Questions](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/Open%20Questions.md)
-- [Wiki Index](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/index.md)
-- [Decision register](Indicia%20Auth%20Investigation%20(INV-43085)/decisions/INDEX.md)
+- [Open Questions](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/Open%20Questions.md)
+- [Wiki Index](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/index.md)
+- [Decision register](INV-43085%20-%20Indicia%20Auth%20Investigation/decisions/INDEX.md)
 - [ADR-0001 Service Tokens for Ingest](ADR-0001%20Service%20Tokens%20for%20Ingest.md) — postponed. This page stays the shipped user-token path.
 - [Service Token Explanation](Service%20Token%20Explanation.md)

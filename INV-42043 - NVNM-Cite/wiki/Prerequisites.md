@@ -87,7 +87,7 @@ This vault (`wiki/` + `decisions/`) is the investigation notebook for INV-42043.
 
 ## Related pages
 
-- [Onboarding](NVNM-Cite%20(INV-42043)/wiki/Onboarding.md)
-- [Audience](NVNM-Cite%20(INV-42043)/wiki/Audience.md)
-- [Run Locally](NVNM-Cite%20(INV-42043)/wiki/Run%20Locally.md)
-- [Wiki Index](NVNM-Cite%20(INV-42043)/wiki/index.md)
+- [Onboarding](INV-42043%20-%20NVNM-Cite/wiki/Onboarding.md)
+- [Audience](INV-42043%20-%20NVNM-Cite/wiki/Audience.md)
+- [Run Locally](INV-42043%20-%20NVNM-Cite/wiki/Run%20Locally.md)
+- [Wiki Index](INV-42043%20-%20NVNM-Cite/wiki/index.md)

@@ -159,7 +159,7 @@ Keep `taxonomyId` when present. If absent, resolve or create by `fileId` + NVNM 
 
 - [Measurabl Provisioning Handoff](Measurabl%20Provisioning%20Handoff.md)
 
-- [Wiki Index](Measurabl%20provision%20(INV-42559)/wiki/index.md)
+- [Wiki Index](INV-42559%20-%20Measurabl%20provision/wiki/index.md)
 - [DevOps How To Onboard Organisation](DevOps%20How%20To%20Onboard%20Organisation.md)
 - [Open Questions Agenda](Open%20Questions%20Agenda.md)
 - [Hub Service Anchor Projector Sequence](Hub%20Service%20Anchor%20Projector%20Sequence.md)

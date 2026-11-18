@@ -18,7 +18,7 @@ tags:
 
 ---
 
-This page is the **current working model**. Forks that still need a choice are in [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md). Do not treat the event name or emit shape as locked.
+This page is the **current working model**. Forks that still need a choice are in [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md). Do not treat the event name or emit shape as locked.
 
 ## Goal
 
@@ -66,7 +66,7 @@ checksumAlgo
 - `documentTaxonomy.location`
 - `documentTaxonomy.individualId`
 
-`isSyncNeeded` — not decided. See [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) #7.
+`isSyncNeeded` — not decided. See [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) #7.
 
 ## What hub-service establishes, in order
 
@@ -79,7 +79,7 @@ From that one event. Each step is skip-if-already-there.
 | 3. Registry (`symbol`) | `addRegistry`, save `deal_anchors.registry` | empty `registry` on the row |
 | 4. `addRecord` | `checksum` / `uri` from the event | event + `deal_anchors.registry` |
 
-`deal_anchors` is the registry lookup. Portfolio on that row is unused here. If the row is missing, Register has nowhere to save `registry`. See [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) #6.
+`deal_anchors` is the registry lookup. Portfolio on that row is unused here. If the row is missing, Register has nowhere to save `registry`. See [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) #6.
 
 ## Job state: existing `transactions` table
 
@@ -118,7 +118,7 @@ Data-room updates taxonomy from that event via `UpdateDataRoomFileTaxonomyComman
 
 ### What this event enables
 
-Inbound `taxonomyId` can be copied onto `transactions` and echoed on the existing succeeded/failed events. Data-room already updates taxonomy from `HubDocumentSyncingSucceededEvent` via `UpdateDataRoomFileTaxonomyCommand`. See [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) #3 if we still want a separate emit.
+Inbound `taxonomyId` can be copied onto `transactions` and echoed on the existing succeeded/failed events. Data-room already updates taxonomy from `HubDocumentSyncingSucceededEvent` via `UpdateDataRoomFileTaxonomyCommand`. See [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) #3 if we still want a separate emit.
 
 ## Relation to the projector page
 
@@ -135,9 +135,9 @@ This page is the **one-shot trigger**: provision event drives those Hub steps an
 
 ## Related pages
 
-- [Wiki Index](Measurabl%20provision%20(INV-42559)/wiki/index.md)
+- [Wiki Index](INV-42559%20-%20Measurabl%20provision/wiki/index.md)
 - [Hub Service Anchor Projector Sequence](Hub%20Service%20Anchor%20Projector%20Sequence.md)
 - [Event Payloads](Event%20Payloads.md)
 - [IO UI File Synced Gaps](IO%20UI%20File%20Synced%20Gaps.md)
-- [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md)
+- [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md)
 - [Decision register](../decisions/INDEX.md)

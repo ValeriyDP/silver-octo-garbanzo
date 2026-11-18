@@ -16,7 +16,7 @@ tags:
 - **Date**: 2026-08-20
 - **Area**: inveniam-v2 UI (+ Hub integration)
 - **Ticket**: `INV-42086` (branch `INV-42086-hub-keys-everywhere`)
-- **Related**: [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- **Related**: [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)
 
 ## Context
 
@@ -108,4 +108,4 @@ Unit tests assert: exact scope ids per level are POSTed (org / portfolio / deal 
 
 ## Related
 
-- [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)

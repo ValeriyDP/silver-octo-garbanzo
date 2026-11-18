@@ -201,4 +201,4 @@ Same boundaries as the PoC — not missing work hidden in the diff:
 
 - [PM Overview](PM%20Overview%20Hub%20Keys%20Everywhere%20PoC.md) — slide / briefing copy
 - [HOW-TO Enable DLT Validation (NVNM)](HOW-TO%20Enable%20DLT%20Validation%20(NVNM).md) — click path and env setup
-- [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md) — ADRs (design history; not required to understand the picture above)
+- [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md) — ADRs (design history; not required to understand the picture above)

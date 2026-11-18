@@ -24,7 +24,7 @@ This project is **two linked wikis**, not one pile of notes.
 Use when the work is: understand a system, ingest a spec, write a how-to, draw a flow, capture current state, list open questions.
 
 - Immutable sources live in `raw/`. Never modify `raw/`.
-- Pages live in `wiki/`. Table of contents: [Indicia Auth Investigation (INV-43085)/wiki/index](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/index.md). Change log: [Indicia Auth Investigation (INV-43085)/wiki/log](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/log.md).
+- Pages live in `wiki/`. Table of contents: [Indicia Auth Investigation (INV-43085)/wiki/index](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/index.md). Change log: [Indicia Auth Investigation (INV-43085)/wiki/log](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/log.md).
 - One idea per page. Title Case filenames with spaces. YAML frontmatter (`name`, `date`, `tags`).
 - Every page: **Summary**, **Sources**, **Last updated**, then body, then **Related pages**.
 - Cite sources as `(source: filename)` after factual claims. Mark unverified claims.
@@ -35,9 +35,9 @@ Use when the work is: understand a system, ingest a spec, write a how-to, draw a
 Use when the work is: choose among options, lock a design, record why the code looks this way.
 
 - One decision per file: `ADR-0001 Short Title.md` (zero-padded). Never delete; supersede instead.
-- Copy [Indicia Auth Investigation (INV-43085)/decisions/ADR Template](Indicia%20Auth%20Investigation%20(INV-43085)/decisions/ADR%20Template.md). Fill Context → Decision → Alternatives → Consequences → Affected code → Related.
+- Copy [Indicia Auth Investigation (INV-43085)/decisions/ADR Template](INV-43085%20-%20Indicia%20Auth%20Investigation/decisions/ADR%20Template.md). Fill Context → Decision → Alternatives → Consequences → Affected code → Related.
 - Ground ADRs in real paths and types. Do not invent APIs from memory.
-- Register every ADR in [Indicia Auth Investigation (INV-43085)/decisions/INDEX](Indicia%20Auth%20Investigation%20(INV-43085)/decisions/INDEX.md). Append [Indicia Auth Investigation (INV-43085)/decisions/log](Indicia%20Auth%20Investigation%20(INV-43085)/decisions/log.md).
+- Register every ADR in [Indicia Auth Investigation (INV-43085)/decisions/INDEX](INV-43085%20-%20Indicia%20Auth%20Investigation/decisions/INDEX.md). Append [Indicia Auth Investigation (INV-43085)/decisions/log](INV-43085%20-%20Indicia%20Auth%20Investigation/decisions/log.md).
 - Status: `Proposed` · `Accepted` · `Superseded by [ADR-…](…)` · `Deprecated` · `Rejected` (kept for the record).
 
 ## When to use which

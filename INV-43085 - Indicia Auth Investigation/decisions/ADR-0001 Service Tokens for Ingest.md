@@ -14,7 +14,7 @@ tags:
 - **Date**: 2026-10-13
 - **Area**: Producer authentication on the sidecar and the core
 - **Deciders**: Postponed. Not accepted.
-- **Related**: [Service Token Explanation](Service%20Token%20Explanation.md), [Current Auth Flow](Current%20Auth%20Flow.md), [Open Questions](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/Open%20Questions.md)
+- **Related**: [Service Token Explanation](Service%20Token%20Explanation.md), [Current Auth Flow](Current%20Auth%20Flow.md), [Open Questions](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/Open%20Questions.md)
 
 Postponed 2026-10-13. The design below stays as the record of what was specified. It is not scheduled. The reason is [Service Token Explanation](Service%20Token%20Explanation.md).
 
@@ -177,7 +177,7 @@ A machine that posts events is not a user. The password grant means every produc
 
 Producer ingestion uses the service token only. The producer caches the access token until `exp` and sends it to the sidecar. Humans lose `writer`. They keep `reader` and `company_admin` for read, verify, and erasure. Many processes can share one Producer Entity.
 
-`RequireWriter` still admits `company_admin` and `global_admin`, so those user tokens can still call `POST /v1/events` until that gate is narrowed to the service-token `writer` role. That narrowing is [Open Questions](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/Open%20Questions.md) item 1. This proposal does not decide it. Until then, producer user-token ingest is replaced, and those two admin roles remain a second way onto the same door.
+`RequireWriter` still admits `company_admin` and `global_admin`, so those user tokens can still call `POST /v1/events` until that gate is narrowed to the service-token `writer` role. That narrowing is [Open Questions](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/Open%20Questions.md) item 1. This proposal does not decide it. Until then, producer user-token ingest is replaced, and those two admin roles remain a second way onto the same door.
 
 The hop does not change. After the switcher accepts the service token, the sidecar still forwards that bearer. The core runs the same switcher. A `writer` service token can call `POST /events` and `GET /event-types`. It cannot call core verify (`RequireVerifyReader` admits `reader`, `company_admin`, `global_admin`).
 
@@ -235,8 +235,8 @@ Nothing in this proposal is implemented. Paths that would change:
 
 ## Related
 
-- [Decision register](Indicia%20Auth%20Investigation%20(INV-43085)/decisions/INDEX.md)
+- [Decision register](INV-43085%20-%20Indicia%20Auth%20Investigation/decisions/INDEX.md)
 - [Service Token Explanation](Service%20Token%20Explanation.md)
 - [Current Auth Flow](Current%20Auth%20Flow.md)
-- [Open Questions](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/Open%20Questions.md)
-- [Wiki](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/index.md)
+- [Open Questions](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/Open%20Questions.md)
+- [Wiki](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/index.md)

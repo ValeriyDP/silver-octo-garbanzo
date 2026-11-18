@@ -19,7 +19,7 @@ Decisions live in [decisions/INDEX](../decisions/INDEX.md). Accepted: [ADR-0003 
 - [New Developer Onboarding](New%20Developer%20Onboarding.md) — Cold start for the erasure / Slice 2c thread: product split, vocabulary, and Taskfile local start (core vs sidecar/Vault).
 - [Core and Sidecar](Core%20and%20Sidecar.md) — Two ports, one HTTP ingest hop, what they share and do not (Vault, DBs, verify join).
 - [BYO Producer](BYO%20Producer.md) — Customer hasher uses the same hash-only door and a FusionAuth `writer` JWT; no other-language SDK.
-- [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) — Questions that are not decisions yet.
+- [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) — Questions that are not decisions yet.
 - [Repository Docs](Repository%20Docs.md) — Map of the live repo `docs/` tree; qmd collection `inveniam-indicia-docs`.
 - [Slice 2c Tenant Offboard](Slice%202c%20Tenant%20Offboard.md) — Launch-gating leftover: whole-tenant offboard/purge + Redis cache invalidation; target vs gap PlantUML; do not decouple from the three latent findings.
 - [TOCTOU](TOCTOU.md) — Time-Of-Check to Time-Of-Use; why the tenant offboard door is deferred.

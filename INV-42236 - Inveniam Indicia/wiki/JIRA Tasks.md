@@ -23,7 +23,7 @@ tags:
 
 | # | Task | Origin | When to file | Status |
 | - | ---- | ------ | ------------ | ------ |
-| 1 | Un-forget: restore lawful subject re-appearance; erasure ledger becomes a lifecycle event log | [Findings](ADR-0003%20Landing%20Review%20Findings.md) Finding 2; [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #5 #9; [ADR-0004](../decisions/ADR-0004%20Erasure%20Ledger%20as%20Lifecycle%20Event%20Log.md) | After the person-erase forget-set PR merges | drafted |
+| 1 | Un-forget: restore lawful subject re-appearance; erasure ledger becomes a lifecycle event log | [Findings](ADR-0003%20Landing%20Review%20Findings.md) Finding 2; [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #5 #9; [ADR-0004](../decisions/ADR-0004%20Erasure%20Ledger%20as%20Lifecycle%20Event%20Log.md) | After the person-erase forget-set PR merges | drafted |
 | 2 | ~~Retire `cache_purged`~~ | [Findings](ADR-0003%20Landing%20Review%20Findings.md) Finding 3 | — | **merged into Task 1** (2026-09-08): the new table and the attestation JSON omit the field; DP-001 closure is "retired, not made honest" |
 | 3 | Update repo docs for the person-erase forget-set change (API spec + ops playbook) | [Findings](ADR-0003%20Landing%20Review%20Findings.md) Findings 4 (doc half) and 5 | Alongside the landing PR — same release, ideally same PR | done (docs in repo 2026-09-08; ship with the landing PR) |
 | 4 | ~~Erasure ledger v2~~ | — | — | **merged into Task 1** (2026-09-08): shipping the interim `unforgotten_at` flag and removing it later was pure rework; no deadline pressure justified the split |
@@ -151,5 +151,5 @@ Docs: API spec and ops playbook updates for the person-erase forget-set change
 - [Write the Person Graveyard](Write%20the%20Person%20Graveyard.md) — the change these tasks follow
 - [Write the Un-forget](Write%20the%20Un-forget.md) — Task 1 how-to
 - [QA Person Graveyard](QA%20Person%20Graveyard.md) — API-call script for QA after the landing PR
-- [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) — #5 (Task 1), #6, #7
-- [Wiki Index](Inveniam%20Indicia%20(INV-42236)/wiki/index.md)
+- [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) — #5 (Task 1), #6, #7
+- [Wiki Index](INV-42236%20-%20Inveniam%20Indicia/wiki/index.md)

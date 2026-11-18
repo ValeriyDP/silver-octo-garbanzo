@@ -15,7 +15,7 @@ On hold, after that:
 4. [Anchoring Bucket](Anchoring%20Bucket.md)
 5. [Anchoring Bucket Diagrams](Anchoring%20Bucket%20Diagrams.md)
 6. [Bucket Pattern And Alternatives](Bucket%20Pattern%20And%20Alternatives.md)
-7. [Open Questions](Bulk%20Anchoring%20(INV-43987)/wiki/Open%20Questions.md)
+7. [Open Questions](INV-43987%20-%20Bulk%20Anchoring/wiki/Open%20Questions.md)
 
 
 ---

@@ -12,7 +12,7 @@ tags:
 
 **Summary**: Punch list from the code review of `INV-42559-measurabl-anchoring` vs `develop` (204 files, ~11k lines; 49 provisioning suites / 187 tests green). Chain structure, the `deal_anchors` SQL, and the register chain-hash fix are sound. High findings R2–R4 are **done** (org-scoped advisory locks + a funding budget that fits the queue's handler timeout). Medium findings R5–R12 are **done**: estimates now carry `bigint` wei with per-write Hub buffers, EIP-1559 price headroom, a re-quote after the poll, a probe that no longer swallows transport errors, failed balance reads abort instead of over-funding, `tx.wait` timeout is "not yet confirmed", Hub write receipts are checked against the identity, and gas logs keep `walletId` / `from`. What is left is R13 (provider reuse, Low) and R14 — Hub's `estimate()` still drops the identity wallet its own controller already resolved, which would retire the ethers quote path (and R13) if fixed. R1 was **rejected** — Hub stores no seed. Each finding is numbered so it can be closed one at a time.
 
-**Sources**: Branch `INV-42559-measurabl-anchoring` in `~/work/inveniam/inveniam.io`; Hub `apps/backend/src/wallets/` in `~/work/inveniam/hub`; [Hub Onboarding Chain](Hub%20Onboarding%20Chain.md); [Identity Wallet Signing](Identity%20Wallet%20Signing.md); [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) #8, #9, #10, #12.
+**Sources**: Branch `INV-42559-measurabl-anchoring` in `~/work/inveniam/inveniam.io`; Hub `apps/backend/src/wallets/` in `~/work/inveniam/hub`; [Hub Onboarding Chain](Hub%20Onboarding%20Chain.md); [Identity Wallet Signing](Identity%20Wallet%20Signing.md); [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) #8, #9, #10, #12.
 
 **Last updated**: 2026-09-29
 
@@ -41,7 +41,7 @@ Close a row by marking it `done` with the commit, or `rejected` with the reason.
 
 ## R1 — Org mnemonic reaches Hub — rejected 2026-09-29
 
-**Original claim**: `EnsureHubWalletStep` mints the org mnemonic through Hub (`POST /wallets/keys/generate`) and `EnsureHubIdentityWalletStep` posts it back to `POST /wallets/keys/derive` for every portfolio leaf, so Hub holds the seed that controls every portfolio wallet — contradicting [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) #9 and #10.
+**Original claim**: `EnsureHubWalletStep` mints the org mnemonic through Hub (`POST /wallets/keys/generate`) and `EnsureHubIdentityWalletStep` posts it back to `POST /wallets/keys/derive` for every portfolio leaf, so Hub holds the seed that controls every portfolio wallet — contradicting [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) #9 and #10.
 
 **Rejected.** Hub is stateless with respect to the mnemonic, by design (source: `hub/apps/backend/src/wallets/wallets.service.ts`):
 
@@ -50,7 +50,7 @@ Close a row by marking it `done` with the commit, or `rejected` with the reason.
 - Hub stores only the derived key pair in its own vault. It has no mnemonic storage and no permission to hold one; the phrase is handed to the user as a file.
 - No request-body logging interceptor in the backend, so the phrase is not captured in transit logs either.
 
-[Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) #9 ("Hub gets leaf keys only") and #10 are therefore accurate as written — they describe storage, and Hub stores no seed.
+[Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) #9 ("Hub gets leaf keys only") and #10 are therefore accurate as written — they describe storage, and Hub stores no seed.
 
 What remains is transit only: the phrase crosses the wire to a first-party service over TLS on each identity provision. IO could derive locally with ethers (`HDNodeWallet.fromPhrase`, already used in `NvnmNativeTransfer`) and drop the `/wallets/keys/derive` round trip. That is a **simplification** — one fewer Hub call on the provisioning hot path, one fewer failure mode — not a security fix, and it is not tracked as a finding here.
 
@@ -102,7 +102,7 @@ Only one funding step can run per message, so the budget is not doubled: `Ensure
 
 ## R6 — No gas-price headroom
 
-`estimateCalldata` reads `feeData.gasPrice` — the legacy field — at quote time, and nothing re-quotes after a poll that can run three minutes. The 6× in `hubBufferedGas` is headroom on gas *units*, not price. If Hub signs a type-2 transaction reserving `maxFeePerGas`, or base fee moves during the poll, the wallet is short — the same `insufficient funds` outcome that killed [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) #12 Variant D.
+`estimateCalldata` reads `feeData.gasPrice` — the legacy field — at quote time, and nothing re-quotes after a poll that can run three minutes. The 6× in `hubBufferedGas` is headroom on gas *units*, not price. If Hub signs a type-2 transaction reserving `maxFeePerGas`, or base fee moves during the poll, the wallet is short — the same `insufficient funds` outcome that killed [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) #12 Variant D.
 
 **Fix**: use `max(gasPrice, maxFeePerGas)`, add a configurable price multiplier, and re-check the requirement after the poll before handing off to the write step.
 
@@ -164,7 +164,7 @@ Per [Identity Wallet Signing](Identity%20Wallet%20Signing.md), Hub silently fall
 
 ## R14 — Hub `estimate()` drops the identity wallet
 
-This is [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) #12 Variant A, located. **Not implemented** — but the missing piece is smaller than #12 implies, and it is entirely inside Hub.
+This is [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) #12 Variant A, located. **Not implemented** — but the missing piece is smaller than #12 implies, and it is entirely inside Hub.
 
 IO already sends `userEmail`: `EstimateTxCostPayloadDTO` carries it and the NVNM codec returns it alongside `tx`, so it reaches `POST /ledgers/estimate`.
 
@@ -187,9 +187,9 @@ const wallet: WalletEntity = isIndividual ? userWallet : orgWallet;
 
 - [Measurabl Provisioning Handoff](Measurabl%20Provisioning%20Handoff.md)
 
-- [Wiki Index](Measurabl%20provision%20(INV-42559)/wiki/index.md)
+- [Wiki Index](INV-42559%20-%20Measurabl%20provision/wiki/index.md)
 - [Hub Onboarding Chain](Hub%20Onboarding%20Chain.md)
 - [Identity Wallet Signing](Identity%20Wallet%20Signing.md)
 - [Organisation Provisioning Sequence](Organisation%20Provisioning%20Sequence.md)
-- [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md)
+- [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md)
 - [ADR-0001 Hub Onboarding Module](../decisions/ADR-0001%20Hub%20Onboarding%20Module.md)

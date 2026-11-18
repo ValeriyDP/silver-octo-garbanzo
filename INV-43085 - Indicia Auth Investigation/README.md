@@ -13,8 +13,8 @@ Blank investigation workspace. Two folders, two jobs:
 
 | Folder | Job | Modelled on |
 | ------ | --- | ----------- |
-| [wiki/](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/index.md) | **Knowledge base** — what we know, how things work, how-tos, diagrams, open questions | Smart Accounts |
-| [decisions/](Indicia%20Auth%20Investigation%20(INV-43085)/decisions/INDEX.md) | **ADR investigation** — what we chose and why | Hub Keys Everywhere |
+| [wiki/](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/index.md) | **Knowledge base** — what we know, how things work, how-tos, diagrams, open questions | Smart Accounts |
+| [decisions/](INV-43085%20-%20Indicia%20Auth%20Investigation/decisions/INDEX.md) | **ADR investigation** — what we chose and why | Hub Keys Everywhere |
 
 They stay separate so a how-to does not become a decision record, and an ADR does not become a dump of source notes. **Cross-link** when a wiki page forces a choice, or when an accepted ADR changes what the wiki says.
 
@@ -31,7 +31,7 @@ If this is unset, the agent must ask for the repo path(s) before investigating.
 1. Drop sources into `raw/` (never edit them after).
 2. Ingest into `wiki/` (summaries, concept pages, how-tos).
 3. When you hit a fork (two ways to build it), open an ADR in `decisions/`.
-4. Link both ways. Update [Indicia Auth Investigation (INV-43085)/wiki/index](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/index.md) and [Indicia Auth Investigation (INV-43085)/decisions/INDEX](Indicia%20Auth%20Investigation%20(INV-43085)/decisions/INDEX.md). Append both logs.
+4. Link both ways. Update [Indicia Auth Investigation (INV-43085)/wiki/index](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/index.md) and [Indicia Auth Investigation (INV-43085)/decisions/INDEX](INV-43085%20-%20Indicia%20Auth%20Investigation/decisions/INDEX.md). Append both logs.
 
 ## qmd (search)
 

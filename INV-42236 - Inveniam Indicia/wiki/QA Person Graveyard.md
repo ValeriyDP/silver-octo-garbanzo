@@ -466,5 +466,5 @@ A load balancer in front of both ports is not required. Hitting `:8081` vs `:808
 - [JIRA Tasks](JIRA%20Tasks.md)
 - [New Developer Onboarding](New%20Developer%20Onboarding.md) — local start
 - [Core and Sidecar](Core%20and%20Sidecar.md)
-- [Wiki Index](Inveniam%20Indicia%20(INV-42236)/wiki/index.md)
+- [Wiki Index](INV-42236%20-%20Inveniam%20Indicia/wiki/index.md)
 - [Decision register](../decisions/INDEX.md)

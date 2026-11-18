@@ -12,12 +12,12 @@ tags:
 
 Architecture Decision Records for this investigation. Each note is **context → decision → consequences**.
 
-Knowledge (how it works, how-tos) lives in [wiki/index](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/index.md). Cross-link when a wiki page forces a choice.
+Knowledge (how it works, how-tos) lives in [wiki/index](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/index.md). Cross-link when a wiki page forces a choice.
 
 ## How to use
 
 - One decision per note. `ADR-0001 …`, `ADR-0002 …`.
-- Copy [ADR Template](Indicia%20Auth%20Investigation%20(INV-43085)/decisions/ADR%20Template.md), fill it, add a row below.
+- Copy [ADR Template](INV-43085%20-%20Indicia%20Auth%20Investigation/decisions/ADR%20Template.md), fill it, add a row below.
 - Durable reasoning, not a play-by-play.
 - Cross-link related ADRs and wiki pages with Markdown links (spaces as `%20`).
 - Status: `Proposed` · `Accepted` · `Superseded by [ADR-…](…)` · `Deprecated` · `Rejected`.
@@ -30,5 +30,5 @@ Knowledge (how it works, how-tos) lives in [wiki/index](Indicia%20Auth%20Investi
 
 ## Related
 
-- [Project README](Indicia%20Auth%20Investigation%20(INV-43085)/README.md)
-- [Wiki](Indicia%20Auth%20Investigation%20(INV-43085)/wiki/index.md)
+- [Project README](INV-43085%20-%20Indicia%20Auth%20Investigation/README.md)
+- [Wiki](INV-43085%20-%20Indicia%20Auth%20Investigation/wiki/index.md)

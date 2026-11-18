@@ -22,12 +22,12 @@ tags:
 
 `pyproject.toml` dependencies: `courts-db`, `eyecite`, `pdfplumber`, `reporters-db`. Dev: `pytest`. No uvicorn, gunicorn, or ASGI stack. (source: pyproject.toml)
 
-The handler serves static files from `webapp/static/` and a handful of `/api/*` routes. Uploads are raw bytes in memory. Business logic lives in `webapp/service.py` and `verifier/`, not in a framework. [Web UI](NVNM-Cite%20(INV-42043)/wiki/Web%20UI.md) is the same no-framework choice on the client.
+The handler serves static files from `webapp/static/` and a handful of `/api/*` routes. Uploads are raw bytes in memory. Business logic lives in `webapp/service.py` and `verifier/`, not in a framework. [Web UI](INV-42043%20-%20NVNM-Cite/wiki/Web%20UI.md) is the same no-framework choice on the client.
 
 ## Related pages
 
-- [Open Questions](NVNM-Cite%20(INV-42043)/wiki/Open%20Questions.md) — Q6: web framework + SQLAlchemy
-- [Web UI](NVNM-Cite%20(INV-42043)/wiki/Web%20UI.md)
-- [Authentication](NVNM-Cite%20(INV-42043)/wiki/Authentication.md)
-- [How Check Finds Citations](NVNM-Cite%20(INV-42043)/wiki/How%20Check%20Finds%20Citations.md)
-- [Wiki Index](NVNM-Cite%20(INV-42043)/wiki/index.md)
+- [Open Questions](INV-42043%20-%20NVNM-Cite/wiki/Open%20Questions.md) — Q6: web framework + SQLAlchemy
+- [Web UI](INV-42043%20-%20NVNM-Cite/wiki/Web%20UI.md)
+- [Authentication](INV-42043%20-%20NVNM-Cite/wiki/Authentication.md)
+- [How Check Finds Citations](INV-42043%20-%20NVNM-Cite/wiki/How%20Check%20Finds%20Citations.md)
+- [Wiki Index](INV-42043%20-%20NVNM-Cite/wiki/index.md)

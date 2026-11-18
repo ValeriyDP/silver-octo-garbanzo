@@ -72,4 +72,4 @@ flowchart TB
 - [Metachain Write Path](Metachain%20Write%20Path.md)
 - [How File Shows As Synced](How%20File%20Shows%20As%20Synced.md)
 - [Payload Comparison Metachain vs NVNM](Payload%20Comparison%20Metachain%20vs%20NVNM.md)
-- [Wiki Index](Metachain%20(INV-42833)/wiki/index.md)
+- [Wiki Index](INV-42833%20-%20Metachain/wiki/index.md)

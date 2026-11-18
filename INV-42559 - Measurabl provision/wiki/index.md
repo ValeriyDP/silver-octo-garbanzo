@@ -38,7 +38,7 @@ Decisions live in [decisions/INDEX](../decisions/INDEX.md). Cross-link; do not c
 - [Measurabl DLT Transaction](Measurabl%20DLT%20Transaction.md) — Working picture: `MeasurablDLTTransaction` (slim of `HubDocumentSyncingRequestedEvent`). Needs `taxonomyId`. Does not need portfolio.
 - [IO UI File Synced Gaps](IO%20UI%20File%20Synced%20Gaps.md) — What both success events must carry, and what IO must already have, for the file Synced badge.
 - [Taxonomy Id Before Client DLT](Taxonomy%20Id%20Before%20Client%20DLT.md) — **Problem:** `taxonomyId` is required on ClientDLT but upload does not create the row. Open #14.
-- [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md) — #1–#10 decided on this branch; #11–#14 still open.
+- [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md) — #1–#10 decided on this branch; #11–#14 still open.
 - [Open Questions Agenda](Open%20Questions%20Agenda.md) — Remaining: sentinel `userId`, Hub estimate-from-identity, Hub job Failed-then-Succeed, taxonomy id at ClientDLT emit.
 - [Provisioning Review Findings](Provisioning%20Review%20Findings.md) — R1–R14 punch list from the branch review. High R2–R4 and medium R5–R12 done. R1 (Hub mnemonic) rejected. Left: R13 (provider reuse), R14 (Hub estimate drops identity).
 - [Split Branch Into PRs Agent Playbook](Split%20Branch%20Into%20PRs%20Agent%20Playbook.md) — How an agent splits `INV-42559-measurabl-anchoring` into six local PRs and proves the merge still matches the original.

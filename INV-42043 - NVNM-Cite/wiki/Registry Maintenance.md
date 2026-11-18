@@ -11,7 +11,7 @@ tags:
 
 **Summary**: The external quote about "only the case name and citation number" is about **adding cases to court registries**, not about lawyer uploads. Shipped code does an initial bulk load plus a CourtListener incremental updater. That is not a two-field bot, and a "citation number" is not the on-chain key.
 
-**Sources**: [raw/Registry Maintenance Excerpt](NVNM-Cite%20(INV-42043)/raw/Registry%20Maintenance%20Excerpt.md), [src/nvnm_cite/loader/update.py](file:///Users/valeriyilihmetov/work/inveniam/nvnm/nvnm-cite/src/nvnm_cite/loader/update.py), [docs/record-schema.md](file:///Users/valeriyilihmetov/work/inveniam/nvnm/nvnm-cite/docs/record-schema.md), [IMPLEMENTATION_PLAN.md](file:///Users/valeriyilihmetov/work/inveniam/nvnm/nvnm-cite/IMPLEMENTATION_PLAN.md) (source: those files)
+**Sources**: [raw/Registry Maintenance Excerpt](INV-42043%20-%20NVNM-Cite/raw/Registry%20Maintenance%20Excerpt.md), [src/nvnm_cite/loader/update.py](file:///Users/valeriyilihmetov/work/inveniam/nvnm/nvnm-cite/src/nvnm_cite/loader/update.py), [docs/record-schema.md](file:///Users/valeriyilihmetov/work/inveniam/nvnm/nvnm-cite/docs/record-schema.md), [IMPLEMENTATION_PLAN.md](file:///Users/valeriyilihmetov/work/inveniam/nvnm/nvnm-cite/IMPLEMENTATION_PLAN.md) (source: those files)
 
 **Last updated**: 2026-08-31
 
@@ -25,7 +25,7 @@ tags:
 
 Full document title and author are unknown. "A...t" is truncated in the excerpt (possibly Albert — unverified).
 
-This is **ops for the court registries**. It is not the Check-tab upload contract. Lawyer documents are a different path: [Uploaded Documents](NVNM-Cite%20(INV-42043)/wiki/Uploaded%20Documents.md).
+This is **ops for the court registries**. It is not the Check-tab upload contract. Lawyer documents are a different path: [Uploaded Documents](INV-42043%20-%20NVNM-Cite/wiki/Uploaded%20Documents.md).
 
 ## What the quote claims
 
@@ -61,11 +61,11 @@ Year may be omitted when CL has no `date_filed`. Collision form uses a `cases` a
 
 - "Citation number" in the quote is looser than the product key. The chain keys on volume + reporter edition + first page. A docket number or a bare page is not enough.
 - Case name is **metadata**, not the lookup key. The same distinction as Check: existence is the citation string. (source: docs/record-schema.md)
-- "50 new cases per week" is a prototype cadence from the excerpt. It does not describe the live mainnet corpus size or the current updater's CL-scan volume. An update / crawl bot can be designed later — [Open Questions](NVNM-Cite%20(INV-42043)/wiki/Open%20Questions.md) Q3 (closed 2026-09-01).
+- "50 new cases per week" is a prototype cadence from the excerpt. It does not describe the live mainnet corpus size or the current updater's CL-scan volume. An update / crawl bot can be designed later — [Open Questions](INV-42043%20-%20NVNM-Cite/wiki/Open%20Questions.md) Q3 (closed 2026-09-01).
 
 ## Related pages
 
-- [Uploaded Documents](NVNM-Cite%20(INV-42043)/wiki/Uploaded%20Documents.md) — lawyer file types; do not confuse with this page
-- [Open Questions](NVNM-Cite%20(INV-42043)/wiki/Open%20Questions.md) — Q4: CourtListener token / paid vs crawl
-- [How Check Finds Citations](NVNM-Cite%20(INV-42043)/wiki/How%20Check%20Finds%20Citations.md)
-- [Wiki Index](NVNM-Cite%20(INV-42043)/wiki/index.md)
+- [Uploaded Documents](INV-42043%20-%20NVNM-Cite/wiki/Uploaded%20Documents.md) — lawyer file types; do not confuse with this page
+- [Open Questions](INV-42043%20-%20NVNM-Cite/wiki/Open%20Questions.md) — Q4: CourtListener token / paid vs crawl
+- [How Check Finds Citations](INV-42043%20-%20NVNM-Cite/wiki/How%20Check%20Finds%20Citations.md)
+- [Wiki Index](INV-42043%20-%20NVNM-Cite/wiki/index.md)

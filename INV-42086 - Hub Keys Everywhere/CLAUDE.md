@@ -22,12 +22,12 @@ ADR-<n> <Title>.md -- one record per decision (ADR-0001, ADR-0002, …); these a
 
 ## Writing a new ADR
 
-1. Copy [ADR Template](Hub%20Keys%20Everywhere%20(INV-42086)/ADR%20Template.md) to `ADR-<next number> <Short Title>.md` (Title Case).
+1. Copy [ADR Template](INV-42086%20-%20Hub%20Keys%20Everywhere/ADR%20Template.md) to `ADR-<next number> <Short Title>.md` (Title Case).
 2. Fill in the **frontmatter** (`name`, `date`, `tags` — see below) and the body: **Context → Decision → Alternatives considered → Consequences → Affected code → Related**.
 3. Ground it in real code: name the actual types, endpoints, components, and file paths. Verify against the repo (`inveniam.io`, `inveniam-v2`) before writing — do not rely on memory.
-4. Add a row to the register table in [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md).
+4. Add a row to the register table in [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md).
 5. Cross-link related ADRs at the bottom with Markdown links (`[Title](Title.md)`, spaces URL-encoded as `%20`).
-6. Append an entry to [log](Hub%20Keys%20Everywhere%20(INV-42086)/log.md) (date + what changed).
+6. Append an entry to [log](INV-42086%20-%20Hub%20Keys%20Everywhere/log.md) (date + what changed).
 7. Reindex qmd in the same turn (`qmd update` and `qmd embed -c hub-keys-everywhere`, or `_resources/scripts/qmd-sync.sh "$(pwd)"`). There are no hooks.
 
 ## Frontmatter & tags (required)
@@ -109,8 +109,8 @@ This collection is the ADR wiki (`**/*.md`). For application source (`inveniam-v
 ## When asked to "audit" this wiki
 
 - Numbering gaps or duplicates.
-- ADRs missing from the [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md) register (or register rows with no file).
+- ADRs missing from the [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md) register (or register rows with no file).
 - Broken Markdown links and orphan pages (no inbound links).
-- Records not following the [ADR Template](Hub%20Keys%20Everywhere%20(INV-42086)/ADR%20Template.md) structure.
+- Records not following the [ADR Template](INV-42086%20-%20Hub%20Keys%20Everywhere/ADR%20Template.md) structure.
 - `Superseded`/`Deprecated` records that don't link their replacement.
 - Stale qmd index (run `qmd update` and `qmd embed` yourself).

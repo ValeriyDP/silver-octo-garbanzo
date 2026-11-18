@@ -11,7 +11,7 @@ tags:
 
 # Write the Person Graveyard
 
-**Summary**: Tutorial + how-to for landing [ADR-0003 Shared Redis Forget Set](../decisions/ADR-0003%20Shared%20Redis%20Forget%20Set.md) on **person erase only**. Written for a programmer who is new to Go (same spirit as *Let's Go*): eleven build steps, each teaching the syntax it uses, then a complete edit, then a complete test. You write the code. No company HTTP door, no `SREM`, no per-request lock (parked: [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #5, #6, #7).
+**Summary**: Tutorial + how-to for landing [ADR-0003 Shared Redis Forget Set](../decisions/ADR-0003%20Shared%20Redis%20Forget%20Set.md) on **person erase only**. Written for a programmer who is new to Go (same spirit as *Let's Go*): eleven build steps, each teaching the syntax it uses, then a complete edit, then a complete test. You write the code. No company HTTP door, no `SREM`, no per-request lock (parked: [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #5, #6, #7).
 
 **Sources**: [ADR-0003 Shared Redis Forget Set](../decisions/ADR-0003%20Shared%20Redis%20Forget%20Set.md); sidecar doors `internal/sidecar/http/{erasure,handler,read}.go`; ledger `internal/sidecar/store/erasure.go`; `cmd/sidecar/main.go`; repo docs review 2026-09-03 (`DECISION_SET_2026-08-10_VERIFY_ERASURE_RBAC.md` D3/D5, `SECURITY_ASSESSMENT_2026-08-17.md` DP-001/DP-002, `API_SPECIFICATION.md`, `feature_summaries/IDEMPOTENCY.md`, `standards/CODING_STANDARDS.md`).
 
@@ -59,7 +59,7 @@ flowchart TD
 | Question | Answer | Details |
 | --- | --- | --- |
 | Code naming | Package `forget`, type `forget.Subjects`, interface `ForgetSet`, methods `MarkForgotten` / `IsForgotten`. "Graveyard" is vault prose only, never code | Step 1 |
-| Heal scope | One global key; heal hydrates ALL rows via new `ListAllErasures` | Step 0, Step 2; [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #8 |
+| Heal scope | One global key; heal hydrates ALL rows via new `ListAllErasures` | Step 0, Step 2; [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #8 |
 | Erased-subject ingest response | `410 Gone` + error code `subject_erased`, refusal logged at `Warn` | Step 6 |
 | "Erasure survives re-appearance" (D3) conflict | Interim permanent ban accepted; exit is the un-forget follow-up | [JIRA Tasks](JIRA%20Tasks.md) Task 1; [findings](ADR-0003%20Landing%20Review%20Findings.md) Finding 2 |
 | `cache_purged` field | Deprecated — do not touch it in this change | [JIRA Tasks](JIRA%20Tasks.md) Task 2 |
@@ -269,7 +269,7 @@ const forgottenKey = "sidecar:forgotten"
 ```
 
 This is the identifier Step 2’s `IsForgotten` already uses (`s.rdb.SCard(ctx, forgottenKey)`). If the compiler says `forgottenKey` is undefined, this line is missing.
-- **The member helper.** A member string is `company_id` + `subject_pseudonym` with a separator — **mandatory**, or `acme`+`alice` and `ac`+`mealice` collide. The test ledger already uses `company|pseudonym`; reuse that shape (`acme|hmac-hex`). Keep it an unexported `func member(company, subject string) string`. Members *without* a `|` are reserved for the future tenant door — this feature never writes one ([Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #7).
+- **The member helper.** A member string is `company_id` + `subject_pseudonym` with a separator — **mandatory**, or `acme`+`alice` and `ac`+`mealice` collide. The test ledger already uses `company|pseudonym`; reuse that shape (`acme|hmac-hex`). Keep it an unexported `func member(company, subject string) string`. Members *without* a `|` are reserved for the future tenant door — this feature never writes one ([Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #7).
 - **The `Subjects` struct and constructor.** This is the concrete type methods will hang on — `func (s *Subjects)` is not a free function; it is a method on `*Subjects`, so `type Subjects struct` must exist first. Fields: the Redis client and the hydrator. Constructor `New(...) *Subjects` returns the concrete pointer — "accept interfaces, return structs" (primer #3). No `context.Context` field (primer #1).
 
 ```go
@@ -346,7 +346,7 @@ func (s *Subjects) MarkForgotten(ctx context.Context, company, subject string) e
 
 `.Err()` on the command object: you only care whether Redis accepted the write, not how many members were added. `SADD` of an existing member is a no-op (returns `0, nil`) — re-POST is therefore safe. Wrap with `%w` so the caller can still see the Redis error. Parameter names (`company` vs `companyID`) do not have to match the interface; the types and the method name do.
 
-**`IsForgotten` carries the heal.** Why the heal must pull **every** tenant (found in review, would have been a production bug): the key is global. If the heal hydrated only the requesting company, then after a flush company A's first request heals A's rows — the set becomes non-empty — and company B's request sees `SCARD > 0` and **never heals**. B's forgotten people stay missing indefinitely; both holes reopen, and the warm-cache path never touches the Postgres fallback (it only fires on unwrap *failure*). Hence `ListAllErasures`, and hence the decision recorded in [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #8: one plain global set, full hydrate, revisit only if the forget-list ever grows big.
+**`IsForgotten` carries the heal.** Why the heal must pull **every** tenant (found in review, would have been a production bug): the key is global. If the heal hydrated only the requesting company, then after a flush company A's first request heals A's rows — the set becomes non-empty — and company B's request sees `SCARD > 0` and **never heals**. B's forgotten people stay missing indefinitely; both holes reopen, and the warm-cache path never touches the Postgres fallback (it only fires on unwrap *failure*). Hence `ListAllErasures`, and hence the decision recorded in [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #8: one plain global set, full hydrate, revisit only if the forget-list ever grows big.
 
 ```go
 // FILE: internal/sidecar/forget/forget.go — the heart of the package.
@@ -1820,12 +1820,12 @@ Go lesson in this trace: the audit was one grep because the doors depend on the 
 
 ## Out of this work (do not sneak them in)
 
-- Company member / `purged_tenants` / tenant walk ([Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #7)
+- Company member / `purged_tenants` / tenant walk ([Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #7)
 - `SREM`, `DEL` of the set, JSON snapshot `SET`
 - Changing `cache_purged` on the attestation ([JIRA Tasks](JIRA%20Tasks.md) Task 2)
 - Keyvault `NoopInvalidator` / ack-all purge
-- Recalculate / un-forget ([Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #5, [JIRA Tasks](JIRA%20Tasks.md) Task 1, how-to: [Write the Un-forget](Write%20the%20Un-forget.md))
-- In-flight GET vs erase lock ([Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md) #6)
+- Recalculate / un-forget ([Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #5, [JIRA Tasks](JIRA%20Tasks.md) Task 1, how-to: [Write the Un-forget](Write%20the%20Un-forget.md))
+- In-flight GET vs erase lock ([Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md) #6)
 
 ## Check yourself before the PR
 
@@ -1857,6 +1857,6 @@ When stuck on a Go idiom (wrapping, interfaces, table tests): ask — teach, do 
 - [New Developer Onboarding](New%20Developer%20Onboarding.md)
 - [Slice 2c Tenant Offboard](Slice%202c%20Tenant%20Offboard.md)
 - [TOCTOU](TOCTOU.md)
-- [Open Questions](Inveniam%20Indicia%20(INV-42236)/wiki/Open%20Questions.md)
-- [Wiki Index](Inveniam%20Indicia%20(INV-42236)/wiki/index.md)
+- [Open Questions](INV-42236%20-%20Inveniam%20Indicia/wiki/Open%20Questions.md)
+- [Wiki Index](INV-42236%20-%20Inveniam%20Indicia/wiki/index.md)
 - [Decision register](../decisions/INDEX.md)

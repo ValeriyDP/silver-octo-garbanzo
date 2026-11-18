@@ -42,8 +42,8 @@ There is an over-arching topic of raising NVNM Chain usage. The idea under test:
 
 ## Related pages
 
-- [Wiki Index](Metachain%20(INV-42833)/wiki/index.md)
-- [Open Questions](Metachain%20(INV-42833)/wiki/Open%20Questions.md)
+- [Wiki Index](INV-42833%20-%20Metachain/wiki/index.md)
+- [Open Questions](INV-42833%20-%20Metachain/wiki/Open%20Questions.md)
 - [Metachain Ownership And Infrastructure](Metachain%20Ownership%20And%20Infrastructure.md)
 - [Metachain Write Path](Metachain%20Write%20Path.md)
 - [Payload Comparison Metachain vs NVNM](Payload%20Comparison%20Metachain%20vs%20NVNM.md)

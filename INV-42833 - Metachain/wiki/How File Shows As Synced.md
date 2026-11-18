@@ -89,4 +89,4 @@ Template for `FDRFileSyncActivitySucceededEvent`: User + “synced” + File + �
 - [Metachain Write Path](Metachain%20Write%20Path.md) — event-hash lane (does not set this badge)
 - [Payload Comparison Metachain vs NVNM](Payload%20Comparison%20Metachain%20vs%20NVNM.md) — taxonomy payload written on success
 - [Metachain And NVNM Flow](Metachain%20And%20NVNM%20Flow.md)
-- [Wiki Index](Metachain%20(INV-42833)/wiki/index.md)
+- [Wiki Index](INV-42833%20-%20Metachain/wiki/index.md)

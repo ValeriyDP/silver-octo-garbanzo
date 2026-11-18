@@ -114,4 +114,4 @@ These are known boundaries, not surprises:
 
 - [HOW-TO Enable DLT Validation (NVNM)](HOW-TO%20Enable%20DLT%20Validation%20(NVNM).md) — click-path for customers and setup for developers
 - [NVNM Register And Sign Final Flow](NVNM%20Register%20And%20Sign%20Final%20Flow.md) — technical sequence
-- [INDEX](Hub%20Keys%20Everywhere%20(INV-42086)/INDEX.md)
+- [INDEX](INV-42086%20-%20Hub%20Keys%20Everywhere/INDEX.md)

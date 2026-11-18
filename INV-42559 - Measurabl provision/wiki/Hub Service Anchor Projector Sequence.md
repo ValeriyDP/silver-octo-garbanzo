@@ -243,9 +243,9 @@ end
 
 ## Related pages
 
-- [Wiki Index](Measurabl%20provision%20(INV-42559)/wiki/index.md)
+- [Wiki Index](INV-42559%20-%20Measurabl%20provision/wiki/index.md)
 - [ADR-0001 Hub Onboarding Module](../decisions/ADR-0001%20Hub%20Onboarding%20Module.md)
 - [Event Payloads](Event%20Payloads.md)
 - [Measurabl DLT Transaction](Measurabl%20DLT%20Transaction.md)
-- [Open Questions](Measurabl%20provision%20(INV-42559)/wiki/Open%20Questions.md)
+- [Open Questions](INV-42559%20-%20Measurabl%20provision/wiki/Open%20Questions.md)
 - [Decision register](../decisions/INDEX.md)

@@ -332,7 +332,7 @@ Typical trial artifacts to delete (not the original branch):
 
 ## Related pages
 
-- [Wiki Index](Measurabl%20provision%20(INV-42559)/wiki/index.md)
+- [Wiki Index](INV-42559%20-%20Measurabl%20provision/wiki/index.md)
 - [Organisation Provisioning Sequence](Organisation%20Provisioning%20Sequence.md)
 - [Organisation Provisioning Chain](Hub%20Onboarding%20Chain.md)
 - [Hub Service Anchor Projector Sequence](Hub%20Service%20Anchor%20Projector%20Sequence.md)

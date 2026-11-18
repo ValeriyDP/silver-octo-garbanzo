@@ -92,5 +92,5 @@ Privacy: event name plus non-content params only. No file bytes, citation text, 
 
 ## Related pages
 
-- [Web UI](NVNM-Cite%20(INV-42043)/wiki/Web%20UI.md)
-- [Wiki Index](NVNM-Cite%20(INV-42043)/wiki/index.md)
+- [Web UI](INV-42043%20-%20NVNM-Cite/wiki/Web%20UI.md)
+- [Wiki Index](INV-42043%20-%20NVNM-Cite/wiki/index.md)
