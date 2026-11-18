@@ -16,14 +16,14 @@ tags:
 - **Date**: 2026-11-17
 - **Area**: platform / hub-service + shared-modules
 - **Deciders**: Valeriy (human), agent
-- **Related**: [ADR-0012 Durable Workflows Engine](../../Bulk%20Anchoring%20%28INV-43987%29/decisions/ADR-0012%20Durable%20Workflows%20Engine.md), [ADR-0013 Hybrid Workflows Over Hub Queue](../../Bulk%20Anchoring%20%28INV-43987%29/decisions/ADR-0013%20Hybrid%20Workflows%20Over%20Hub%20Queue.md)
+- **Related**: [ADR-0012 Durable Workflows Engine](../../INV-43987%20-%20Bulk%20Anchoring/decisions/ADR-0012%20Durable%20Workflows%20Engine.md), [ADR-0013 Hybrid Workflows Over Hub Queue](../../INV-43987%20-%20Bulk%20Anchoring/decisions/ADR-0013%20Hybrid%20Workflows%20Over%20Hub%20Queue.md)
 
 > [!note] Separate track
-> This is a **side investigation** and an **upgrade diary**, kept as one ADR by request (not split). It is numbered `ADR-0001-Update NestJS` to live in its own "Update NestJS" track, distinct from the on-hold [ADR-0001 Hub Postgres Bucket](../../Bulk%20Anchoring%20%28INV-43987%29/decisions/ADR-0001%20Hub%20Postgres%20Bucket.md). It unblocks [ADR-0012](../../Bulk%20Anchoring%20%28INV-43987%29/decisions/ADR-0012%20Durable%20Workflows%20Engine.md) / [ADR-0013](../../Bulk%20Anchoring%20%28INV-43987%29/decisions/ADR-0013%20Hybrid%20Workflows%20Over%20Hub%20Queue.md), which need `@nestjs/cqrs` 11+/12.1+.
+> This is a **side investigation** and an **upgrade diary**, kept as one ADR by request (not split). It is numbered `ADR-0001-Update NestJS` to live in its own "Update NestJS" track, distinct from the on-hold [ADR-0001 Hub Postgres Bucket](../../INV-43987%20-%20Bulk%20Anchoring/decisions/ADR-0001%20Hub%20Postgres%20Bucket.md). It unblocks [ADR-0012](../../INV-43987%20-%20Bulk%20Anchoring/decisions/ADR-0012%20Durable%20Workflows%20Engine.md) / [ADR-0013](../../INV-43987%20-%20Bulk%20Anchoring/decisions/ADR-0013%20Hybrid%20Workflows%20Over%20Hub%20Queue.md), which need `@nestjs/cqrs` 11+/12.1+.
 
 ## Context
 
-[ADR-0012](../../Bulk%20Anchoring%20%28INV-43987%29/decisions/ADR-0012%20Durable%20Workflows%20Engine.md) named `@nestjs/workflows` as the long-term durable-orchestration engine, gated on a NestJS/cqrs upgrade. This ADR is the diary of that upgrade: analysis, step log, and the final verdict on how much the current implementation breaks.
+[ADR-0012](../../INV-43987%20-%20Bulk%20Anchoring/decisions/ADR-0012%20Durable%20Workflows%20Engine.md) named `@nestjs/workflows` as the long-term durable-orchestration engine, gated on a NestJS/cqrs upgrade. This ADR is the diary of that upgrade: analysis, step log, and the final verdict on how much the current implementation breaks.
 
 Scope by request: tick NestJS up **only in the microservices that are currently running**, starting with `inv-hub-ms` (`hub-service`). The human will shut the other services down so we can experiment on `hub-service` in isolation. `@inveniam/nest-aws-cqrs` is updated **after** the core libs (expected to break first; fixed in a later diary entry).
 
@@ -248,5 +248,5 @@ Proceed with the upgrade to NestJS 12 on the running services, `hub-service` fir
 ## Related
 
 - [Decision register](INDEX.md)
-- [ADR-0012 Durable Workflows Engine](../../Bulk%20Anchoring%20%28INV-43987%29/decisions/ADR-0012%20Durable%20Workflows%20Engine.md)
-- [ADR-0013 Hybrid Workflows Over Hub Queue](../../Bulk%20Anchoring%20%28INV-43987%29/decisions/ADR-0013%20Hybrid%20Workflows%20Over%20Hub%20Queue.md)
+- [ADR-0012 Durable Workflows Engine](../../INV-43987%20-%20Bulk%20Anchoring/decisions/ADR-0012%20Durable%20Workflows%20Engine.md)
+- [ADR-0013 Hybrid Workflows Over Hub Queue](../../INV-43987%20-%20Bulk%20Anchoring/decisions/ADR-0013%20Hybrid%20Workflows%20Over%20Hub%20Queue.md)

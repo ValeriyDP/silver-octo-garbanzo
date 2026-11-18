@@ -37,8 +37,8 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "INV-43353 - NestJS Upgrade/README.md",
-                "mode": "source",
+                "file": "INV-43353 - NestJS Upgrade/decisions/ADR-0001-Update NestJS.md",
+                "mode": "preview",
                 "source": false,
                 "backlinks": true,
                 "backlinkOpts": {
@@ -52,7 +52,7 @@
                 }
               },
               "icon": "lucide-file",
-              "title": "README"
+              "title": "ADR-0001-Update NestJS"
             }
           }
         ],
@@ -131,7 +131,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "INV-43353 - NestJS Upgrade/README.md",
+                "file": "INV-43353 - NestJS Upgrade/decisions/ADR-0001-Update NestJS.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -150,7 +150,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "INV-43353 - NestJS Upgrade/README.md",
+                "file": "INV-43353 - NestJS Upgrade/decisions/ADR-0001-Update NestJS.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
@@ -193,7 +193,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "INV-43353 - NestJS Upgrade/README.md",
+                "file": "INV-43353 - NestJS Upgrade/decisions/ADR-0001-Update NestJS.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -226,6 +226,7 @@
   },
   "active": "9dfa287d1bcf5e79",
   "lastOpenFiles": [
+    "INV-43353 - NestJS Upgrade/README.md",
     "CLAUDE.md",
     "Resources.md",
     "hub-service-anchor-projector-sequence.pdf",
@@ -255,7 +256,6 @@
     "INV-42043 - NVNM-Cite/raw/Do Not Edit.md",
     "INV-42043 - NVNM-Cite/decisions/log.md",
     "INV-42043 - NVNM-Cite/decisions/INDEX.md",
-    "INV-42043 - NVNM-Cite/decisions/ADR Template.md",
     "INV-42043 - NVNM-Cite/wiki",
     "INV-42043 - NVNM-Cite/raw",
     "INV-42043 - NVNM-Cite/qmd-collection",
