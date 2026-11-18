@@ -1,0 +1,10 @@
+INV-43526
+Parent: INV-42087
+
+TestEraseSubjectConcurrentWithSealIsRaceFree and TestPurgeTenantConcurrentWithSealIsRaceFree assumed WithCacheSize(1) kept the write DEK and its wrapped form from being cached together. putWrite now installs those entries together and eviction skips them, so every concurrent seal took the fast path and never contended the shard lock.
+
+Claims:
+- The erase and purge race tests force the slow path with withMaxSealsPerDEK(1) and name takeWriteDEK.
+- While DestroySubjectKey is blocked, the tests fail if the subject's shard lock is free, and they fail if a seal provisions a key before the gate opens.
+- After the gate opens, every concurrent seal must succeed, and WriteMisses must equal the priming seal plus each concurrent seal.
+- tryLock is test-only. Production paths still use lock.

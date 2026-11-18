@@ -1,0 +1,242 @@
+diff --git a/docs/api/API_SPECIFICATION.md b/docs/api/API_SPECIFICATION.md
+index bec7d92..9a17865 100644
+--- a/docs/api/API_SPECIFICATION.md
++++ b/docs/api/API_SPECIFICATION.md
+@@ -4,7 +4,7 @@
+ 
+ **Version:** 3.0  
+ **Status:** Complete  
+-**Last Updated:** October 22, 2026
++**Last Updated:** October 29, 2026
+ 
+ > **Content-free hash-only core (Slice 1, Plan B).** `POST /events` is the sole ingestion door and accepts a content-free `canonical.HashOnlyEnvelope` — locators, HMAC pseudonyms, and precomputed leaf hashes only. Raw content never reaches the core; producers (a future content sidecar, or a BYO client) compute the hashes before submitting. See [ARCHITECTURE.md](ARCHITECTURE.md) and [SEPARATION_OF_CONCERNS_CANONICAL_HASHING_SPEC.md](../plans/SEPARATION_OF_CONCERNS_CANONICAL_HASHING_SPEC.md) for the full contract.
+ 
+@@ -447,7 +447,7 @@ Stored index for one event. **This is not a tamper check.**
+ 
+ The only endpoint that consults the chain is [`GET /events/{id}/verify`](#get-eventsidverify) (`chain_anchor`). To be sure the answer is a live read, pass `?fresh=true` and assert `chain_anchor.source == "chain"`.
+ 
+-*(changed 2026-10-22)* A failed read of the event, or of the batch row when `batch_id` is set, is HTTP 500 `{"error":"retrieval_error","message":"Failed to retrieve anchor status"}`. The handler does not return 200 with the batch fields omitted.
++*(changed 2026-10-29)* A missing event is HTTP 404 `{"error":"not_found","message":"Event not found"}`. When `batch_id` is set and that batch row is absent, the response is HTTP 404 `{"error":"not_found","message":"Batch not found"}`. The handler does not return 200 with the batch fields omitted. Any other failure reading the event, or that batch row, is HTTP 500 `{"error":"retrieval_error","message":"Failed to retrieve anchor status"}`.
+ 
+ **Errors:** 400, 401, 403, 404, 500 (`retrieval_error`), 503
+ 
+diff --git a/docs/plans/SECURITY_ASSESSMENT_2026-08-14_BACKLOG.md b/docs/plans/SECURITY_ASSESSMENT_2026-08-14_BACKLOG.md
+index e70f819..03e810e 100644
+--- a/docs/plans/SECURITY_ASSESSMENT_2026-08-14_BACKLOG.md
++++ b/docs/plans/SECURITY_ASSESSMENT_2026-08-14_BACKLOG.md
+@@ -287,8 +287,10 @@ Confirmed defects, but each needs either a network position, a dependency change
+ > the chain readback runs on every verify. `?fresh=true` only refuses the
+ > confirmed-read cache (up to 30 days). A cached `confirmed` can lag a later
+ > revocation or supersede; the readback does not check `tx_hash` or
+-> `block_number`. `GetAnchorStatus` now returns 500 if the batch row cannot be
+-> read, and `GetBatch` returns 500 if the event list cannot be read.
++> `block_number`. `GetAnchorStatus` returns 404 when the batch row is absent
++> and 500 for any other failure reading that row. `GetBatch` returns 500 if
++> the event list cannot be read. Neither handler returns 200 with the failed
++> sub-read omitted.
+ - **Anchor:** `internal/api/handlers/events.go` `GetAnchorStatus`, `GetBatch` — both read only Postgres/Hub-derived state; the tamper-evident `ChainAnchorReader` path is wired only into `Verify`. `?fresh=true` refuses the confirmed-read cache; it is not the only path that reads the chain.
+ - **Verdict:** CONFIRMED.
+ - **Fix:** either document explicitly (API spec + `SECURITY.md`) that status reads are index-derived and `/verify` is the chain check (`?fresh=true` forces a live read), or extend the opt-in fresh-check to the default status endpoints.
+diff --git a/internal/api/docs/docs.go b/internal/api/docs/docs.go
+index 6958649..029bc6d 100644
+--- a/internal/api/docs/docs.go
++++ b/internal/api/docs/docs.go
+@@ -1817,13 +1817,13 @@ const docTemplate = `{
+                         }
+                     },
+                     "404": {
+-                        "description": "Not Found",
++                        "description": "not_found when the event is missing, or when batch_id is set and that batch row is absent",
+                         "schema": {
+                             "$ref": "#/definitions/handlers.ErrorResponse"
+                         }
+                     },
+                     "500": {
+-                        "description": "retrieval_error when the event or its batch row cannot be read",
++                        "description": "retrieval_error when the event or its batch row fails to read for a reason other than a missing row",
+                         "schema": {
+                             "$ref": "#/definitions/handlers.ErrorResponse"
+                         }
+diff --git a/internal/api/docs/swagger.json b/internal/api/docs/swagger.json
+index 5ab5735..51dca2b 100644
+--- a/internal/api/docs/swagger.json
++++ b/internal/api/docs/swagger.json
+@@ -1810,13 +1810,13 @@
+                         }
+                     },
+                     "404": {
+-                        "description": "Not Found",
++                        "description": "not_found when the event is missing, or when batch_id is set and that batch row is absent",
+                         "schema": {
+                             "$ref": "#/definitions/handlers.ErrorResponse"
+                         }
+                     },
+                     "500": {
+-                        "description": "retrieval_error when the event or its batch row cannot be read",
++                        "description": "retrieval_error when the event or its batch row fails to read for a reason other than a missing row",
+                         "schema": {
+                             "$ref": "#/definitions/handlers.ErrorResponse"
+                         }
+diff --git a/internal/api/docs/swagger.yaml b/internal/api/docs/swagger.yaml
+index 63aefad..278a7d8 100644
+--- a/internal/api/docs/swagger.yaml
++++ b/internal/api/docs/swagger.yaml
+@@ -2313,11 +2313,13 @@ paths:
+           schema:
+             $ref: '#/definitions/handlers.ErrorResponse'
+         "404":
+-          description: Not Found
++          description: not_found when the event is missing, or when batch_id is set
++            and that batch row is absent
+           schema:
+             $ref: '#/definitions/handlers.ErrorResponse'
+         "500":
+-          description: retrieval_error when the event or its batch row cannot be read
++          description: retrieval_error when the event or its batch row fails to read
++            for a reason other than a missing row
+           schema:
+             $ref: '#/definitions/handlers.ErrorResponse'
+         "503":
+diff --git a/internal/api/handlers/events.go b/internal/api/handlers/events.go
+index 512a80e..2d228fd 100644
+--- a/internal/api/handlers/events.go
++++ b/internal/api/handlers/events.go
+@@ -314,8 +314,8 @@ func (h *EventsHandler) Get(c *gin.Context) {
+ //	@Failure		400	{object}	ErrorResponse
+ //	@Failure		401	{object}	ErrorResponse
+ //	@Failure		403	{object}	ErrorResponse
+-//	@Failure		404	{object}	ErrorResponse
+-//	@Failure		500	{object}	ErrorResponse	"retrieval_error when the event or its batch row cannot be read"
++//	@Failure		404	{object}	ErrorResponse	"not_found when the event is missing, or when batch_id is set and that batch row is absent"
++//	@Failure		500	{object}	ErrorResponse	"retrieval_error when the event or its batch row fails to read for a reason other than a missing row"
+ //	@Failure		503	{object}	ErrorResponse
+ //	@Router			/events/{id}/anchor/status [get]
+ func (h *EventsHandler) GetAnchorStatus(c *gin.Context) {
+@@ -362,14 +362,26 @@ func (h *EventsHandler) GetAnchorStatus(c *gin.Context) {
+ 		"hub_status":     nil, // always null: Hub status is not polled on this endpoint
+ 	}
+ 
+-	// Include batch info for batched events. events.batch_id references batches,
+-	// so a missing or unreadable batch is a retrieval failure, not a partial answer.
++	// Include batch info for batched events. A missing batch row is wrong data
++	// (404). Any other failure reading that row is a store failure (500).
++	// Neither case returns 200 with the batch fields omitted.
+ 	if event.BatchID != nil && *event.BatchID != "" {
+ 		response["batch_id"] = *event.BatchID
+ 		response["leaf_index"] = event.LeafIndex
+ 
+ 		batch, err := h.postgres.GetBatchByID(c.Request.Context(), *event.BatchID)
+ 		if err != nil {
++			if errors.Is(err, postgres.ErrBatchNotFound) {
++				log.Warn().
++					Str("event_id", eventID).
++					Str("batch_id", *event.BatchID).
++					Msg("anchor status batch row is missing")
++				c.JSON(http.StatusNotFound, ErrorResponse{
++					Error:   codeNotFound,
++					Message: msgBatchNotFound,
++				})
++				return
++			}
+ 			log.Error().Err(err).
+ 				Str("event_id", eventID).
+ 				Str("batch_id", *event.BatchID).
+diff --git a/tests/integration/status_reads_test.go b/tests/integration/status_reads_test.go
+index 3365156..8602667 100644
+--- a/tests/integration/status_reads_test.go
++++ b/tests/integration/status_reads_test.go
+@@ -19,8 +19,9 @@ import (
+ )
+ 
+ // TestGetAnchorStatus_And_GetBatch covers the index reads: a complete 200 when
+-// both tables are readable, and a 500 when the second lookup fails. The
+-// restricted roles exist so the failure is the sub-lookup, not the first read.
++// both tables are readable, a 404 when the anchor-status batch row is absent,
++// and a 500 when the second lookup fails. The restricted roles exist so the
++// 500 is the sub-lookup failing, not the first read.
+ func TestGetAnchorStatus_And_GetBatch(t *testing.T) {
+ 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+ 	defer cancel()
+@@ -154,6 +155,82 @@ func TestGetAnchorStatus_And_GetBatch(t *testing.T) {
+ 		assertRetrievalError(t, w)
+ 	})
+ 
++	t.Run("GetAnchorStatus_MissingBatch_Returns404", func(t *testing.T) {
++		missingBatchID := "batch-status-missing"
++		missingEventID := "evt-status-missing"
++		if err := admin.InsertBatch(ctx, &postgres.BatchRecord{
++			BatchID:    missingBatchID,
++			RootHash:   testEventHash("batch-status-missing-root"),
++			Status:     core.AnchorStatusConfirmed,
++			EventCount: 1,
++			LeafCount:  1,
++			CompanyID:  companyID,
++			CreatedAt:  now,
++		}); err != nil {
++			t.Fatalf("InsertBatch: %v", err)
++		}
++		if err := admin.InsertEventBatch(ctx, []*postgres.EventRecord{{
++			EventID:           missingEventID,
++			EventType:         "test",
++			CompanyID:         companyID,
++			UserID:            "user-1",
++			EventTimestamp:    now,
++			Geography:         "us-east-1",
++			DatacenterID:      "dc-1",
++			GPUClusterID:      "cluster-1",
++			AnchorStatus:      core.AnchorStatusConfirmed,
++			BatchID:           &missingBatchID,
++			LeafIndex:         ptr(0),
++			EventRoot:         testEventHash(missingEventID),
++			LeafSchemeVersion: 2,
++			Tier1JSON:         `{}`,
++			Tier2JSON:         `{}`,
++			Tier3JSON:         `{}`,
++			CreatedAt:         now,
++			UpdatedAt:         now,
++		}}); err != nil {
++			t.Fatalf("InsertEventBatch: %v", err)
++		}
++
++		// events.batch_id references batches. A superuser session in the replica
++		// role skips foreign-key checks, so this delete leaves a dangling batch_id.
++		conn, err := adminPool.Acquire(ctx)
++		if err != nil {
++			t.Fatalf("acquire admin conn: %v", err)
++		}
++		defer conn.Release()
++		if _, err := conn.Exec(ctx, "SET session_replication_role = replica"); err != nil {
++			t.Fatalf("set replica role: %v", err)
++		}
++		tag, err := conn.Exec(ctx, "DELETE FROM batches WHERE batch_id = $1", missingBatchID)
++		if err != nil {
++			t.Fatalf("delete batch: %v", err)
++		}
++		if tag.RowsAffected() != 1 {
++			t.Fatalf("deleted %d batches, want 1", tag.RowsAffected())
++		}
++		if _, err := conn.Exec(ctx, "SET session_replication_role = DEFAULT"); err != nil {
++			t.Fatalf("restore session role: %v", err)
++		}
++
++		w := serveStatus(t, admin, companyID, "/events/"+missingEventID+"/anchor/status", func(r *gin.Engine, h *handlers.EventsHandler) {
++			r.GET("/events/:id/anchor/status", h.GetAnchorStatus)
++		})
++		if w.Code != http.StatusNotFound {
++			t.Fatalf("status = %d, want 404: %s", w.Code, w.Body.String())
++		}
++		var body struct {
++			Error   string `json:"error"`
++			Message string `json:"message"`
++		}
++		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
++			t.Fatalf("decode: %v", err)
++		}
++		if body.Error != "not_found" || body.Message != "Batch not found" {
++			t.Fatalf("body = %+v, want not_found / Batch not found", body)
++		}
++	})
++
+ 	t.Run("GetBatch_HappyPath", func(t *testing.T) {
+ 		w := serveStatus(t, admin, companyID, "/batches/"+batchID, func(r *gin.Engine, h *handlers.EventsHandler) {
+ 			r.GET("/batches/:id", h.GetBatch)

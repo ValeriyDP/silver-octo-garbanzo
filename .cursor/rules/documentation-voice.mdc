@@ -1,0 +1,19 @@
+---
+description: Formal, linear, current-state voice for docs-vault pages
+globs: docs-vault/**/*.md
+alwaysApply: true
+---
+
+# Voice
+
+- Formal register. No book or chapter asides.
+- Linear reading. Do not write “see section X” or “defined above”. Put the payload, policy, or type at the step that uses it.
+- Current state only. Do not mention prior requests, rejected drafts, or investigation leftovers in the narrative.
+- No ticket IDs in the page body. Tags and `wiki/log.md` may use them.
+
+```markdown
+❌ That differs from the originally requested ACL (`keys/*` with create/read).
+✅ Cluster IO Hub Service role:
+
+path "inveniam-<env>-hub-tse/keys/+" { capabilities = ["update"] }
+```

@@ -1,0 +1,145 @@
+diff --git a/internal/api/router.go b/internal/api/router.go
+index 25a5b31..336e5a0 100644
+--- a/internal/api/router.go
++++ b/internal/api/router.go
+@@ -2,6 +2,7 @@
+ package api
+ 
+ import (
++	"net/http"
+ 	"time"
+ 
+ 	"github.com/gin-gonic/gin"
+@@ -92,7 +93,7 @@ func NewRouter(cfg *config.Config, log zerolog.Logger, deps *Dependencies) *gin.
+ // configureMiddleware adds common middleware to the router.
+ func configureMiddleware(router *gin.Engine, cfg *config.Config, log zerolog.Logger, deps *Dependencies) {
+ 	if cfg.Tracing.Enabled {
+-		router.Use(otelgin.Middleware("indicia-api"))
++		router.Use(otelgin.Middleware("indicia-api", otelgin.WithFilter(traceRequest)))
+ 		log.Info().Msg("OpenTelemetry tracing middleware enabled")
+ 	}
+ 
+@@ -703,20 +704,28 @@ func eventCreationIdempotency(log zerolog.Logger, deps *Dependencies) gin.Handle
+ 	})
+ }
+ 
++// quietPaths are operational endpoints (probes, metrics, info). Request logs
++// and trace spans skip them so Kubernetes probes do not bury real traffic.
++// Match URL.Path exactly: a longer path must still be logged and traced.
++var quietPaths = map[string]bool{
++	"/":               true,
++	"/health":         true,
++	"/health/live":    true,
++	"/health/metrics": true,
++	"/health/workers": true,
++	"/ready":          true,
++	"/info":           true,
++}
++
++// traceRequest reports whether otelgin should start a span. WithFilter
++// traces a request only when every filter returns true.
++func traceRequest(r *http.Request) bool {
++	return !quietPaths[r.URL.Path]
++}
++
+ // requestLogger returns a Gin middleware that logs requests with duration.
+-// Health check endpoints are excluded from logging to reduce noise.
++// quietPaths are excluded to reduce noise.
+ func requestLogger(log zerolog.Logger) gin.HandlerFunc {
+-	// Paths that should not be logged (health checks, metrics, etc.)
+-	skipPaths := map[string]bool{
+-		"/":               true,
+-		"/health":         true,
+-		"/health/live":    true,
+-		"/health/metrics": true,
+-		"/health/workers": true,
+-		"/ready":          true,
+-		"/info":           true,
+-	}
+-
+ 	return func(c *gin.Context) {
+ 		start := time.Now()
+ 
+@@ -724,7 +733,7 @@ func requestLogger(log zerolog.Logger) gin.HandlerFunc {
+ 		c.Next()
+ 
+ 		// Skip logging for health check endpoints.
+-		if skipPaths[c.Request.URL.Path] {
++		if quietPaths[c.Request.URL.Path] {
+ 			return
+ 		}
+ 
+diff --git a/internal/api/router_tracing_test.go b/internal/api/router_tracing_test.go
+new file mode 100644
+index 0000000..c1769d8
+--- /dev/null
++++ b/internal/api/router_tracing_test.go
+@@ -0,0 +1,68 @@
++package api
++
++import (
++	"context"
++	"testing"
++
++	"github.com/rs/zerolog"
++	"go.opentelemetry.io/otel"
++	sdktrace "go.opentelemetry.io/otel/sdk/trace"
++	"go.opentelemetry.io/otel/sdk/trace/tracetest"
++
++	"github.com/inveniamcapital/InveniamIndicia/internal/config"
++)
++
++// TestRouter_QuietPathsAreNotTraced pins INV-43586: probe and other
++// operational paths produce no spans, and a normal request still does.
++func TestRouter_QuietPathsAreNotTraced(t *testing.T) {
++	recorder := tracetest.NewSpanRecorder()
++	provider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(recorder))
++	previous := otel.GetTracerProvider()
++	otel.SetTracerProvider(provider)
++	t.Cleanup(func() {
++		otel.SetTracerProvider(previous)
++		if err := provider.Shutdown(context.Background()); err != nil {
++			t.Errorf("shutdown tracer provider: %v", err)
++		}
++	})
++
++	cfg := &config.Config{
++		Environment: "development",
++		Tracing:     config.TracingConfig{Enabled: true},
++	}
++	router := NewRouter(cfg, zerolog.Nop(), &Dependencies{Config: cfg})
++
++	for _, path := range []string{
++		"/",
++		"/health",
++		"/health/live",
++		"/health/metrics",
++		"/health/workers",
++		"/ready",
++		"/info",
++	} {
++		doGet(router, path, "")
++		if got := recorder.Ended(); len(got) != 0 {
++			t.Fatalf("GET %s produced %d spans, want 0", path, len(got))
++		}
++	}
++
++	const traced = "/v1/events"
++	doGet(router, traced, "")
++	ended := recorder.Ended()
++	if len(ended) != 1 {
++		t.Fatalf("GET %s produced %d spans, want 1", traced, len(ended))
++	}
++	if got := spanURLPath(ended[0]); got != traced {
++		t.Errorf("span url.path = %q, want %q", got, traced)
++	}
++}
++
++func spanURLPath(span sdktrace.ReadOnlySpan) string {
++	for _, attr := range span.Attributes() {
++		if string(attr.Key) == "url.path" {
++			return attr.Value.AsString()
++		}
++	}
++	return ""
++}

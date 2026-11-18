@@ -1,0 +1,3 @@
+name=inveniam-indicia
+context=Inveniam Indicia investigation wiki and ADRs
+mask=**/*.md

@@ -1,0 +1,187 @@
+diff --git a/docs/devops/IMMUDB_VERIFICATION_STRATEGY.md b/docs/devops/IMMUDB_VERIFICATION_STRATEGY.md
+index 3dd0245..aa0f50d 100644
+--- a/docs/devops/IMMUDB_VERIFICATION_STRATEGY.md
++++ b/docs/devops/IMMUDB_VERIFICATION_STRATEGY.md
+@@ -117,7 +117,7 @@ Production and staging refuse to start when `INDICIA_IMMUDB_AUDIT_INTERVAL` is z
+ 
+ `VerifiedGet` fails for two different reasons, and only one of them is tampering.
+ 
+-An **integrity failure** is one of immudb's sentinels: `ErrCorruptedData` (inclusion or dual proof failed), `ErrServerStateIsOlder` (the server is behind the client's trusted state), `ErrServerIdentityValidationFailed` (a different server at the same address), or `ErrLocalStateCorrupted` (the persisted baseline cannot be read). The first time the auditor sees one:
++An **integrity failure** is one of immudb's sentinels: `ErrCorruptedData` (inclusion or dual proof failed, or the server could not read stored data), `ErrCorruptedTxData` (the server's stored transaction does not hash — an ALH mismatch — or cannot be read), `ErrServerStateIsOlder` (the server is behind the client's trusted state), `ErrServerIdentityValidationFailed` (a different server at the same address), or `ErrLocalStateCorrupted` (the persisted baseline cannot be read). Client-local sentinels match by identity. A server-returned `ErrCorruptedData` or `ErrCorruptedTxData` arrives as a raw gRPC status: immudb v1.11.2 `mapServerError` assigns it no code and no `ErrorInfo`, and `VerifiedGet` does not convert it back to the sentinel. `isIntegrityError` treats `codes.Unknown` or `codes.Internal` as an integrity failure when any `": "`-delimited segment of the status message equals one of those two sentinels' text (`"data is corrupted"` or `"tx data is corrupted"`). The server image pin `codenotary/immudb:1.11.1` uses those same sentences. `TestServerIntegritySentinelText` fails if the pinned SDK rewords either sentence; that failure is the signal to re-check the server image pin in `internal/testimages/testimages.go` and `docker-compose.yml` before updating the matcher. The first time the auditor sees one:
+ 
+ - `indicia_storage_immudb_audits_total{result="integrity_failure"}` increments
+ - `indicia_storage_immudb_integrity_failed` is set to `1` and stays there for the life of the process
+diff --git a/internal/storage/immudb/client.go b/internal/storage/immudb/client.go
+index 788bff9..5fdded1 100644
+--- a/internal/storage/immudb/client.go
++++ b/internal/storage/immudb/client.go
+@@ -27,8 +27,10 @@ import (
+ 	immucache "github.com/codenotary/immudb/pkg/client/cache"
+ 	"github.com/rs/zerolog"
+ 	"google.golang.org/grpc"
++	"google.golang.org/grpc/codes"
+ 	"google.golang.org/grpc/credentials"
+ 	"google.golang.org/grpc/credentials/insecure"
++	"google.golang.org/grpc/status"
+ 
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/core"
+ 	"github.com/inveniamcapital/InveniamIndicia/pkg/metrics"
+@@ -721,14 +723,55 @@ func (c *Client) markIntegrityFailed() {
+ 	metrics.ImmudbIntegrityFailed.Set(1)
+ }
+ 
++// serverIntegritySentinels are the immudb store errors that mean stored history
++// cannot be trusted when they arrive as a raw gRPC status. immudb v1.11.2
++// mapServerError assigns them no code and no schema.ErrorInfo, and VerifiedGet
++// does not convert them back to the sentinel. Their text is read from this
++// module so an SDK reword changes the match; TestServerIntegritySentinelText
++// fails when that happens.
++var serverIntegritySentinels = []error{store.ErrCorruptedData, store.ErrCorruptedTxData}
++
+ // isIntegrityError reports whether err is one of the immudb sentinels that mean
+ // the server's history does not match the client's trusted state. Transport,
+ // session, and not-found errors are not integrity failures.
++//
++// Client-local sentinels compare by identity via errors.Is. A server-returned
++// store.ErrCorruptedData or store.ErrCorruptedTxData does not: isServerIntegrityStatus
++// matches the raw gRPC status instead. A server binary that rewords either
++// sentinel without this same client module misses the latch.
+ func isIntegrityError(err error) bool {
+ 	return errors.Is(err, store.ErrCorruptedData) ||
++		errors.Is(err, store.ErrCorruptedTxData) ||
+ 		errors.Is(err, immudb.ErrServerStateIsOlder) ||
+ 		errors.Is(err, immucache.ErrServerIdentityValidationFailed) ||
+-		errors.Is(err, immucache.ErrLocalStateCorrupted)
++		errors.Is(err, immucache.ErrLocalStateCorrupted) ||
++		isServerIntegrityStatus(err)
++}
++
++// isServerIntegrityStatus reports whether err is the gRPC status immudb v1.11.2
++// sends for a serverIntegritySentinels value. The server attaches no
++// schema.ErrorInfo and no dedicated code, so the match is the pinned sentinel
++// text from this module. codes.Unknown covers the plain or fmt.Errorf-wrapped
++// sentinel, and codes.Internal covers a later wrap as an uncoded *immuError.
++// immudb joins wraps with ": ", in either order, so any whole segment equal to
++// a sentinel's text counts. "data is corrupted: value length or digest mismatch"
++// and "error reading tx metadata attributes: data is corrupted" both match.
++func isServerIntegrityStatus(err error) bool {
++	st, ok := status.FromError(err)
++	if !ok || st == nil {
++		return false
++	}
++	if code := st.Code(); code != codes.Unknown && code != codes.Internal {
++		return false
++	}
++	for _, segment := range strings.Split(st.Message(), ": ") {
++		for _, sentinel := range serverIntegritySentinels {
++			if segment == sentinel.Error() {
++				return true
++			}
++		}
++	}
++	return false
+ }
+ 
+ // GetEventMeta retrieves event metadata from immudb using verified operations.
+diff --git a/internal/storage/immudb/client_test.go b/internal/storage/immudb/client_test.go
+index 9786fe5..5d2f99d 100644
+--- a/internal/storage/immudb/client_test.go
++++ b/internal/storage/immudb/client_test.go
+@@ -367,6 +367,19 @@ func TestIsIntegrityError(t *testing.T) {
+ 		{name: "canceled", err: context.Canceled, want: false},
+ 		{name: "session", err: &mockError{msg: "session not found"}, want: false},
+ 		{name: "not found", err: &mockError{msg: "key not found"}, want: false},
++		{name: "tx data corrupted", err: store.ErrCorruptedTxData, want: true},
++		{name: "server corrupted status", err: status.Error(codes.Unknown, store.ErrCorruptedData.Error()), want: true},
++		{name: "server corrupted wrapped status", err: status.Error(codes.Unknown, store.ErrCorruptedData.Error()+": value length or digest mismatch"), want: true},
++		{name: "server corrupted internal", err: status.Error(codes.Internal, store.ErrCorruptedData.Error()), want: true},
++		{name: "server metadata prefix wrap", err: status.Error(codes.Unknown, "error reading tx metadata attributes: "+store.ErrCorruptedData.Error()), want: true},
++		{name: "server metadata double wrap", err: status.Error(codes.Unknown, "error reading tx metadata attributes: error reading tx metadata attributes: "+store.ErrCorruptedData.Error()), want: true},
++		{name: "server alh mismatch", err: status.Error(codes.Unknown, store.ErrCorruptedTxData.Error()+": ALH mismatch at tx 7"), want: true},
++		{name: "server tx eof", err: status.Error(codes.Unknown, store.ErrCorruptedTxData.Error()+": unexpected EOF while reading tx 7"), want: true},
++		{name: "server reworded", err: status.Error(codes.Unknown, "history is corrupted"), want: false},
++		{name: "substring not a segment", err: status.Error(codes.Unknown, "user data is corrupted"), want: false},
++		{name: "unavailable with sentinel text", err: status.Error(codes.Unavailable, store.ErrCorruptedData.Error()), want: false},
++		{name: "precondition failed", err: status.Error(codes.FailedPrecondition, "precondition failed"), want: false},
++		{name: "precondition with alh text", err: status.Error(codes.FailedPrecondition, store.ErrCorruptedTxData.Error()+": ALH mismatch at tx 7"), want: false},
+ 	}
+ 	for _, tt := range tests {
+ 		t.Run(tt.name, func(t *testing.T) {
+@@ -396,6 +409,77 @@ func TestDoAudit_IntegrityFailureLatches(t *testing.T) {
+ 	}
+ }
+ 
++func TestDoAudit_ServerCorruptedDataLatches(t *testing.T) {
++	before := auditCount(auditResultIntegrityFailure)
++	c := newAuditClient(func(context.Context, []byte, ...immudbclient.GetOption) (*schema.Entry, error) {
++		return nil, status.Error(codes.Unknown, store.ErrCorruptedData.Error())
++	})
++
++	c.doAudit(context.Background())
++
++	if !c.IntegrityFailed() {
++		t.Fatal("expected integrity latch")
++	}
++	if got := testutil.ToFloat64(metrics.ImmudbIntegrityFailed); got != 1 {
++		t.Fatalf("integrity gauge = %v, want 1", got)
++	}
++	if got := auditCount(auditResultIntegrityFailure); got != before+1 {
++		t.Fatalf("integrity_failure = %v, want %v", got, before+1)
++	}
++}
++
++func TestDoAudit_ServerALHMismatchLatches(t *testing.T) {
++	before := auditCount(auditResultIntegrityFailure)
++	c := newAuditClient(func(context.Context, []byte, ...immudbclient.GetOption) (*schema.Entry, error) {
++		return nil, status.Error(codes.Unknown, store.ErrCorruptedTxData.Error()+": ALH mismatch at tx 7")
++	})
++
++	c.doAudit(context.Background())
++
++	if !c.IntegrityFailed() {
++		t.Fatal("expected integrity latch")
++	}
++	if got := testutil.ToFloat64(metrics.ImmudbIntegrityFailed); got != 1 {
++		t.Fatalf("integrity gauge = %v, want 1", got)
++	}
++	if got := auditCount(auditResultIntegrityFailure); got != before+1 {
++		t.Fatalf("integrity_failure = %v, want %v", got, before+1)
++	}
++}
++
++func TestServerIntegritySentinelText(t *testing.T) {
++	const (
++		wantData   = "data is corrupted"
++		wantTxData = "tx data is corrupted"
++	)
++	if got := store.ErrCorruptedData.Error(); got != wantData {
++		t.Fatalf("store.ErrCorruptedData = %q, want %q; re-check the immudb server image pin in internal/testimages/testimages.go and docker-compose.yml before updating the matcher", got, wantData)
++	}
++	if got := store.ErrCorruptedTxData.Error(); got != wantTxData {
++		t.Fatalf("store.ErrCorruptedTxData = %q, want %q; re-check the immudb server image pin in internal/testimages/testimages.go and docker-compose.yml before updating the matcher", got, wantTxData)
++	}
++}
++
++func TestDoAudit_RewordedServerErrorDoesNotLatch(t *testing.T) {
++	before := auditCount(auditResultError)
++	gauge := testutil.ToFloat64(metrics.ImmudbIntegrityFailed)
++	c := newAuditClient(func(context.Context, []byte, ...immudbclient.GetOption) (*schema.Entry, error) {
++		return nil, status.Error(codes.Unknown, "history is corrupted")
++	})
++
++	c.doAudit(context.Background())
++
++	if c.IntegrityFailed() {
++		t.Fatal("reworded server error must not latch")
++	}
++	if got := testutil.ToFloat64(metrics.ImmudbIntegrityFailed); got != gauge {
++		t.Fatalf("integrity gauge changed from %v to %v", gauge, got)
++	}
++	if got := auditCount(auditResultError); got != before+1 {
++		t.Fatalf("error count = %v, want %v", got, before+1)
++	}
++}
++
+ func TestDoAudit_TransportErrorDoesNotLatch(t *testing.T) {
+ 	before := auditCount(auditResultError)
+ 	gauge := testutil.ToFloat64(metrics.ImmudbIntegrityFailed)

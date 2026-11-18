@@ -1,0 +1,14 @@
+INV-43586
+Parent: INV-43103
+
+Kubernetes liveness and readiness probes call /health about every 10 seconds. With tracing on, each call became an indicia-api span, about 17k spans a day per pod, so Tempo showed only GET /health. Request logs already skipped these paths. This change skips the same paths in tracing so real requests stay visible.
+
+Claims:
+- Probe and operational paths (/, /health, /health/live, /health/metrics, /health/workers, /ready, /info) produce no trace spans when tracing is enabled.
+- Every other request still produces a span.
+- Request logging keeps the same skip list. The debug log level on devus01 is unchanged.
+
+Test plan:
+- go test -race -run TestRouter_QuietPathsAreNotTraced ./internal/api/  [checked]
+- go test -race ./internal/api/... and go vet ./internal/api/...  [checked]
+- After deploy, confirm in Tempo that GET /health spans stop and other routes still appear  [unchecked]

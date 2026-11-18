@@ -1,0 +1,300 @@
+diff --git a/internal/keyvault/erase_test.go b/internal/keyvault/erase_test.go
+index ef21e7c..9dc8951 100644
+--- a/internal/keyvault/erase_test.go
++++ b/internal/keyvault/erase_test.go
+@@ -5,6 +5,7 @@ import (
+ 	"context"
+ 	"fmt"
+ 	"sync"
++	"sync/atomic"
+ 	"testing"
+ 	"time"
+ 
+@@ -120,15 +121,104 @@ func TestEraseSubjectCompletionWindow(t *testing.T) {
+ 	}
+ }
+ 
++// destroyGate blocks inside DestroySubjectKey after the subject key is gone.
++// Tests use that pause to observe the shard lock EraseSubject and
++// destroySubjectLocked hold across the call. provisions counts EnsureSubjectKey
++// and GenerateDEK calls made while the gate is closed.
++type destroyGate struct {
++	*kms.Fake
++	entered       chan struct{}
++	releaseCh     chan struct{}
++	provisioned   chan struct{} // closed on the first provision while the gate is closed
++	releaseOnce   sync.Once
++	enterOnce     sync.Once
++	provisionOnce sync.Once
++	inWindow      atomic.Bool
++	provisions    atomic.Int32
++}
++
++func newDestroyGate(t *testing.T) *destroyGate {
++	t.Helper()
++	g := &destroyGate{
++		Fake:        kms.NewFake(),
++		entered:     make(chan struct{}),
++		releaseCh:   make(chan struct{}),
++		provisioned: make(chan struct{}),
++	}
++	t.Cleanup(g.release)
++	return g
++}
++
++func (g *destroyGate) release() {
++	g.releaseOnce.Do(func() { close(g.releaseCh) })
++}
++
++func (g *destroyGate) DestroySubjectKey(ctx context.Context, tenantID, subjectID string) error {
++	if err := g.Fake.DestroySubjectKey(ctx, tenantID, subjectID); err != nil {
++		return err
++	}
++	g.inWindow.Store(true)
++	g.enterOnce.Do(func() { close(g.entered) })
++	<-g.releaseCh
++	g.inWindow.Store(false)
++	return nil
++}
++
++func (g *destroyGate) noteProvision() {
++	if g.inWindow.Load() {
++		g.provisions.Add(1)
++		g.provisionOnce.Do(func() { close(g.provisioned) })
++	}
++}
++
++func (g *destroyGate) EnsureSubjectKey(ctx context.Context, tenantID, subjectID string) error {
++	g.noteProvision()
++	return g.Fake.EnsureSubjectKey(ctx, tenantID, subjectID)
++}
++
++func (g *destroyGate) GenerateDEK(ctx context.Context, tenantID, subjectID string) ([]byte, []byte, error) {
++	g.noteProvision()
++	return g.Fake.GenerateDEK(ctx, tenantID, subjectID)
++}
++
++// requireShardHeldDuringDestroy waits until the key is destroyed and the gate
++// is still closed, then fails if that subject's shard lock is free.
++func requireShardHeldDuringDestroy(t *testing.T, v *Keyvault, g *destroyGate, tenantID, subjectID, holder string) {
++	t.Helper()
++	<-g.entered
++	if unlock, ok := v.locks.tryLock(tenantID, subjectID); ok {
++		unlock()
++		t.Fatalf("%s is not holding v.locks.lock(%s, %s) across DestroySubjectKey", holder, tenantID, subjectID)
++	}
++}
++
++// provisionWindow is how long the destroy gate stays closed after the seals
++// start. A seal that skips the shard lock reaches the KMS in microseconds, so
++// this window catches it every time; correct code never provisions in it.
++const provisionWindow = 50 * time.Millisecond
++
++// requireNoProvisionWhileGateClosed fails if a seal reaches EnsureSubjectKey or
++// GenerateDEK before the destroy gate opens. Callers start the seals first and
++// keep the gate closed for provisionWindow.
++func requireNoProvisionWhileGateClosed(t *testing.T, g *destroyGate) {
++	t.Helper()
++	select {
++	case <-g.provisioned:
++		t.Fatalf("EnsureSubjectKey/GenerateDEK ran %d times while DestroySubjectKey was blocked", g.provisions.Load())
++	case <-time.After(provisionWindow):
++	}
++}
++
++// TestEraseSubjectConcurrentWithSealIsRaceFree covers the destroy-then-purge
++// window in EraseSubject. withMaxSealsPerDEK(1) forces every seal after the
++// priming seal onto the slow path: takeWriteDEK calls reserveWrite, the primed
++// DEK already has seals == 1, and reserveWrite returns a miss. subjectDEK then
++// takes v.locks.lock and contends with EraseSubject. The fast path never
++// touches that lock.
+ func TestEraseSubjectConcurrentWithSealIsRaceFree(t *testing.T) {
+ 	ctx := context.Background()
+-	// WithCacheSize(1) forces every SealEvent onto the slow path: cachedWriteDEK
+-	// needs BOTH the wdek and wwrap cache entries for a subject to hit, but a
+-	// 1-entry cache evicts one on every put, so they can never coexist. That
+-	// guarantees each concurrent SealEvent takes v.locks.lock(t,s) and actually
+-	// contends the shard lock against EraseSubject, instead of racing through the
+-	// fast path (which never touches the lock) for an unrelated reason.
+-	v := New(kms.NewFake(), WithCacheSize(1))
++	gate := newDestroyGate(t)
++	v := New(gate, withMaxSealsPerDEK(1))
+ 
+ 	// Seal initial event for the victim subject and capture its wrappedDEK.
+ 	// This DEK was encrypted under the subject Transit key; after erasure,
+@@ -147,14 +237,14 @@ func TestEraseSubjectConcurrentWithSealIsRaceFree(t *testing.T) {
+ 	var eraseErr error
+ 	var sealErrors [numConcurrentSeals]error
+ 
+-	// Launch erase goroutine
+ 	wg.Add(1)
+ 	go func() {
+ 		defer wg.Done()
+ 		_, eraseErr = v.EraseSubject(ctx, "t", "victim")
+ 	}()
+ 
+-	// Launch concurrent seal goroutines that try to recreate the subject key
++	requireShardHeldDuringDestroy(t, v, gate, "t", "victim", "EraseSubject")
++
+ 	for i := 0; i < numConcurrentSeals; i++ {
+ 		wg.Add(1)
+ 		idx := i
+@@ -164,24 +254,24 @@ func TestEraseSubjectConcurrentWithSealIsRaceFree(t *testing.T) {
+ 			_, _, sealErrors[idx] = v.SealEvent(ctx, "t", "victim", eventID, []byte("concurrent data"))
+ 		}()
+ 	}
++	requireNoProvisionWhileGateClosed(t, gate)
++	gate.release()
+ 
+-	// Wait for all goroutines to complete (no panic, no deadlock)
+ 	wg.Wait()
+ 
+-	// Verify erase succeeded
+ 	if eraseErr != nil {
+ 		t.Fatalf("EraseSubject: %v", eraseErr)
+ 	}
+ 
+-	// Verify none of the concurrent seals panicked
+-	// (they may succeed or fail, depending on timing, but must not crash)
+-	for i := range sealErrors {
+-		// Seals may legitimately error if they race late, or succeed if they race early;
+-		// we only check that they completed without panic (which is verified by wg.Wait above).
+-		_ = sealErrors[i]
++	// Every seal starts after DestroySubjectKey and waits on the shard lock, so
++	// each one runs after the erase finished: it finds an empty cache,
++	// re-provisions the subject, and must succeed.
++	for i, err := range sealErrors {
++		if err != nil {
++			t.Fatalf("concurrent seal %d: %v", i, err)
++		}
+ 	}
+ 
+-	// Verify the ORIGINAL ciphertext is NOT recoverable via OpenEvent.
+ 	// The original DEK was wrapped under the destroyed key; even if a concurrent seal
+ 	// recreated the subject with fresh key material, the original wrapped DEK cannot
+ 	// be unwrapped. This is the core erasure guarantee: existing ciphertext becomes
+@@ -189,6 +279,12 @@ func TestEraseSubjectConcurrentWithSealIsRaceFree(t *testing.T) {
+ 	if _, err := v.OpenEvent(ctx, "t", "victim", "original", originalCT, originalDEK); err == nil {
+ 		t.Fatal("original ciphertext must be unrecoverable after concurrent erase")
+ 	}
++	// One miss for the priming seal, plus one miss per concurrent seal. writeMisses
++	// increments only after subjectDEK takes the shard lock, so a fast-path hit
++	// would leave this short.
++	if got := v.CacheStats().WriteMisses; got != 1+numConcurrentSeals {
++		t.Fatalf("WriteMisses = %d, want %d slow-path seals", got, 1+numConcurrentSeals)
++	}
+ }
+ 
+ // Crypto-shred is a claim about key material, not about map membership: a
+diff --git a/internal/keyvault/locks.go b/internal/keyvault/locks.go
+index 48f8524..1f7bc53 100644
+--- a/internal/keyvault/locks.go
++++ b/internal/keyvault/locks.go
+@@ -23,8 +23,22 @@ func fnv1a(s string) uint32 {
+ 	return h
+ }
+ 
++func (l *shardedLocks) shard(tenantID, subjectID string) *sync.Mutex {
++	return &l.shards[fnv1a(tenantID+sep+subjectID)%uint32(len(l.shards))]
++}
++
+ func (l *shardedLocks) lock(tenantID, subjectID string) func() {
+-	m := &l.shards[fnv1a(tenantID+sep+subjectID)%uint32(len(l.shards))]
++	m := l.shard(tenantID, subjectID)
+ 	m.Lock()
+ 	return m.Unlock
+ }
++
++// tryLock acquires the subject's shard if it is free. Tests use it to prove a
++// caller still holds the shard lock; production paths use lock.
++func (l *shardedLocks) tryLock(tenantID, subjectID string) (func(), bool) {
++	m := l.shard(tenantID, subjectID)
++	if !m.TryLock() {
++		return nil, false
++	}
++	return m.Unlock, true
++}
+diff --git a/internal/keyvault/offboard_test.go b/internal/keyvault/offboard_test.go
+index 11345ae..239bed3 100644
+--- a/internal/keyvault/offboard_test.go
++++ b/internal/keyvault/offboard_test.go
+@@ -6,8 +6,6 @@ import (
+ 	"sync"
+ 	"testing"
+ 	"time"
+-
+-	"github.com/inveniamcapital/InveniamIndicia/internal/keyvault/kms"
+ )
+ 
+ func TestOffboardTenantRendersContentInert(t *testing.T) {
+@@ -90,19 +88,14 @@ func TestPurgeTenantOtherTenantUnaffected(t *testing.T) {
+ 
+ // TestPurgeTenantConcurrentWithSealIsRaceFree exercises the same hazard as
+ // TestEraseSubjectConcurrentWithSealIsRaceFree, but at tenant scope: an unlocked
+-// PurgeTenant destroy-loop could race a concurrent SealEvent that re-provisions
+-// the subject key between destroy and cache purge, leaving live key material
+-// while the attestation claims destruction. Run with -race.
++// destroySubjectLocked could race a concurrent SealEvent that re-provisions the
++// subject key between destroy and cache purge, leaving live key material while
++// the attestation claims destruction. withMaxSealsPerDEK(1) forces those seals
++// through takeWriteDEK onto the slow path, so they take v.locks.lock. Run with -race.
+ func TestPurgeTenantConcurrentWithSealIsRaceFree(t *testing.T) {
+ 	ctx := context.Background()
+-	// WithCacheSize(1) forces every SealEvent onto the slow path: cachedWriteDEK
+-	// needs BOTH the wdek and wwrap cache entries for a subject to hit, but a
+-	// 1-entry cache evicts one on every put, so they can never coexist. That
+-	// guarantees each concurrent SealEvent takes v.locks.lock(t,s) and actually
+-	// contends the shard lock against destroySubjectLocked, instead of racing
+-	// through the fast path (which never touches the lock) for an unrelated
+-	// reason.
+-	v := New(kms.NewFake(), WithCacheSize(1))
++	gate := newDestroyGate(t)
++	v := New(gate, withMaxSealsPerDEK(1))
+ 
+ 	// Seal a pre-purge event for the victim subject and capture its wrappedDEK.
+ 	// This DEK was wrapped under the subject Transit key existing at purge time;
+@@ -125,6 +118,8 @@ func TestPurgeTenantConcurrentWithSealIsRaceFree(t *testing.T) {
+ 		att, purgeErr = v.PurgeTenant(ctx, "t")
+ 	}()
+ 
++	requireShardHeldDuringDestroy(t, v, gate, "t", "victim", "destroySubjectLocked")
++
+ 	for i := 0; i < numConcurrentSeals; i++ {
+ 		wg.Add(1)
+ 		idx := i
+@@ -134,6 +129,8 @@ func TestPurgeTenantConcurrentWithSealIsRaceFree(t *testing.T) {
+ 			_, _, sealErrors[idx] = v.SealEvent(ctx, "t", "victim", evt, []byte("concurrent data"))
+ 		}()
+ 	}
++	requireNoProvisionWhileGateClosed(t, gate)
++	gate.release()
+ 
+ 	wg.Wait()
+ 
+@@ -143,11 +140,13 @@ func TestPurgeTenantConcurrentWithSealIsRaceFree(t *testing.T) {
+ 	if !att.KeyDestroyed || !att.CachePurged {
+ 		t.Fatalf("attestation incomplete: %+v", att)
+ 	}
+-	// Concurrent seals may succeed or fail depending on timing relative to the
+-	// purge's lock hold; the only requirement is no panic (guaranteed by wg.Wait
+-	// returning, combined with -race reporting no data race).
+-	for i := range sealErrors {
+-		_ = sealErrors[i]
++	// Every seal starts after DestroySubjectKey and waits on the shard lock, so
++	// each one runs after the purge finished: it finds an empty cache,
++	// re-provisions the subject, and must succeed.
++	for i, err := range sealErrors {
++		if err != nil {
++			t.Fatalf("concurrent seal %d: %v", i, err)
++		}
+ 	}
+ 
+ 	// The pre-purge event must be permanently unrecoverable, even if a concurrent
+@@ -155,4 +154,7 @@ func TestPurgeTenantConcurrentWithSealIsRaceFree(t *testing.T) {
+ 	if _, err := v.OpenEvent(ctx, "t", "victim", "original", originalCT, originalDEK); err == nil {
+ 		t.Fatal("pre-purge ciphertext must be unrecoverable after concurrent purge")
+ 	}
++	if got := v.CacheStats().WriteMisses; got != 1+numConcurrentSeals {
++		t.Fatalf("WriteMisses = %d, want %d slow-path seals", got, 1+numConcurrentSeals)
++	}
+ }

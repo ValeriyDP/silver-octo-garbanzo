@@ -1,0 +1,123 @@
+diff --git a/docs/api/API_SPECIFICATION.md b/docs/api/API_SPECIFICATION.md
+index b2455e8..e7d59e3 100644
+--- a/docs/api/API_SPECIFICATION.md
++++ b/docs/api/API_SPECIFICATION.md
+@@ -366,7 +366,7 @@ Exchange API key/secret for JWT token.
+ 
+ ### POST /events
+ 
+-The sole ingestion door. Stores a single content-free hash-only event envelope (see [Event Envelope](#event-envelope)). Tenant access enforced after resolving `company_id` from either `company_id` or `external_id` in the envelope (unless admin).
++The sole ingestion door. Stores a single content-free hash-only event envelope (see [Event Envelope](#event-envelope)). Admitted roles: `writer`, `company_admin`, `global_admin`. Tenant access is enforced after resolving `company_id` from either `company_id` or `external_id` in the envelope. Only `global_admin` may target a tenant other than the token's `company_id`. `operator` is not admitted.
+ 
+ **Headers:** `Authorization`, `Content-Type: application/json`. Optional `Idempotency-Key` (≤255 chars) — see [Idempotent Retries](#idempotent-retries).
+ 
+@@ -418,7 +418,7 @@ The only endpoint that consults the chain is [`GET /events/{id}/verify`](#get-ev
+ 
+ ### POST /batches/{id}/retry
+ 
+-Retry batch anchoring. Writer or admin. Empty body. Retryable: `failed`, `anchoring` (stuck after crash), or `pending` with no `tx_hash`. Not retryable: confirmed or in-progress with `tx_hash`.
++Retry batch anchoring. Admitted roles: `writer`, `company_admin`, `global_admin`. `writer` and `company_admin` may retry only their own tenant's batch; `global_admin` may retry any. Empty body. Retryable: `failed`, `anchoring` (stuck after crash), or `pending` with no `tx_hash`. Not retryable: confirmed or in-progress with `tx_hash`.
+ 
+ **Response (202):** `{"batch_id", "status": "pending", "message": "Batch queued for retry", "root_hash", "event_count"}`  
+ **Errors:** 400, 401, 403, 404, 500, 503
+@@ -451,7 +451,7 @@ The only endpoint that consults the chain is [`GET /events/{id}/verify`](#get-ev
+ 
+ ### GET /events
+ 
+-**Query:** `company_id` or `external_id` (required unless global admin), `user_id`, `event_type`, `agent_id`, `geography`, `status` (pending/anchored/confirmed/failed), `start_time`, `end_time`, `limit`, `offset`.
++**Query:** `company_id` or `external_id` (required unless `global_admin`), `user_id`, `event_type`, `agent_id`, `geography`, `status` (pending/anchored/confirmed/failed), `start_time`, `end_time`, `limit`, `offset`.
+ 
+ **Response (200):** `{"events": [...], "total", "limit", "offset"}`  
+ **Errors:** 400, 401, 500
+@@ -742,19 +742,19 @@ Abandon a failed batch and return its events to the unbatched pending pool. Even
+ 
+ ### GET /ops/alerts
+ 
+-Requires any admin role. Same proactive alerts as `GET /health`, but **retains** the per-alert `action` field (the remediation hint) that is stripped from the public health endpoint.
++Requires `operator` or `global_admin`. `company_admin` is not admitted. Same proactive alerts as `GET /health`, but **retains** the per-alert `action` field (the remediation hint) that is stripped from the public health endpoint.
+ 
+ ---
+ 
+ ### GET /ops/hub
+ 
+-Requires any admin role. Hub health and error-class rates: current Hub session state, last success/error timestamps, and a breakdown of outbound Hub call outcomes over the last 15 minutes grouped by error class (`success`, `transient`, `permanent`, `900003_html`, `900003_other`, `auth`, `rate_limited`). Counters reset on process restart. Returns 503 when Hub anchoring is disabled.
++Requires `operator` or `global_admin`. `company_admin` is not admitted. Hub health and error-class rates: current Hub session state, last success/error timestamps, and a breakdown of outbound Hub call outcomes over the last 15 minutes grouped by error class (`success`, `transient`, `permanent`, `900003_html`, `900003_other`, `auth`, `rate_limited`). Counters reset on process restart. Returns 503 when Hub anchoring is disabled.
+ 
+ ---
+ 
+ ### GET /admin/events/:id/trace
+ 
+-Requires any admin role. Single JSON document covering an event's full journey: its PostgreSQL record, immudb presence/verification status, and its parent batch (if any). Consolidates `GET /events/:id`, `GET /events/:id/verify`, and `GET /batches/:id`.
++Requires `company_admin` (own tenant) or `global_admin`. Single JSON document covering an event's full journey: its PostgreSQL record, immudb presence/verification status, and its parent batch (if any). Consolidates `GET /events/:id`, `GET /events/:id/verify`, and `GET /batches/:id`.
+ 
+ **Errors:** 404, 500
+ 
+@@ -762,7 +762,7 @@ Requires any admin role. Single JSON document covering an event's full journey:
+ 
+ ### GET /ops/batches/:id/trace
+ 
+-Requires any admin role. Single JSON document covering a batch's full journey: its PostgreSQL record and a summary of all events it contains. Consolidates `GET /batches/:id` and `GET /ops/batches/:id/investigate`.
++Requires `operator` or `global_admin`. `company_admin` is not admitted. Single JSON document covering a batch's full journey: its PostgreSQL record and a summary of all events it contains. Consolidates `GET /batches/:id` and `GET /ops/batches/:id/investigate`.
+ 
+ **Errors:** 404, 500
+ 
+@@ -810,9 +810,9 @@ Delete a company.
+ 
+ ---
+ 
+-### User Administration (require admin role)
++### User Administration (require `company_admin` or `global_admin`)
+ 
+-CRUD for user accounts. Requires an admin role: `company_admin` is scoped to users within its own company; `global_admin` manages all users.
++CRUD for user accounts. Requires `company_admin` or `global_admin`: `company_admin` is scoped to users within its own company; `global_admin` manages all users.
+ 
+ ### GET /admin/users
+ 
+@@ -840,7 +840,7 @@ Delete a user.
+ 
+ ### Operations Endpoints (require `global_admin` role)
+ 
+-The operations infrastructure tracks long-running async admin tasks (reconcile, re-anchor, bulk operations). The `GET`/`DELETE` endpoints below are the operator surface; specific operation kinds are started via type-specific endpoints (e.g. `POST /ops/maintenance/reconcile-event-status`). See [Operations feature summary](../feature_summaries/OPERATIONS.md) for the lifecycle, recovery, and runner-registration model.
++The operations infrastructure tracks long-running async operations (reconcile, re-anchor, bulk operations). The `GET`/`DELETE` endpoints below are the operator surface; specific operation kinds are started via type-specific endpoints (e.g. `POST /ops/maintenance/reconcile-event-status`). See [Operations feature summary](../feature_summaries/OPERATIONS.md) for the lifecycle, recovery, and runner-registration model.
+ 
+ ### GET /ops/operations
+ 
+@@ -905,7 +905,7 @@ Examples: `event_type=asset*`, `event_type=*transfer*`, `status=confirm*`
+ |---|---|---|---|
+ | `/health` | GET | none | Liveness |
+ | `/health/metrics` | GET | `operator`, `global_admin` | Prometheus scrape of this process. A token with no `company_id` is admitted. Not plaintext. |
+-| `/v1/events` | POST | `writer` (or an admin tier) | Full-data ingestion |
++| `/v1/events` | POST | `writer`, `company_admin`, `global_admin` | Full-data ingestion |
+ | `/v1/events/{record_id}` | GET | `reader`, `company_admin` | Content read-back |
+ | `/v1/events/{record_id}/verify` | GET | `reader`, `company_admin` | Content verification |
+ | `/v1/erasures/preview` | POST | `company_admin` | Dry run: what an erasure would cover |
+@@ -916,7 +916,7 @@ Examples: `event_type=asset*`, `event_type=*transfer*`, `status=confirm*`
+ | `/v1/quarantine/{id}` | GET | `reader`, `company_admin` | One quarantined payload, decrypted |
+ | `/v1/quarantine/{id}` | DELETE | `company_admin` | Burn a quarantined submission |
+ 
+-> **`global_admin` and `operator` are absent from every content row above.** They are admitted only on `GET /health/metrics` (and `/health` stays open). That is not an omission. On the door where plaintext lives, Inveniam holds no read: the two roles Inveniam actually holds cannot read a tenant's content or ask this service to reveal it. The metrics route is process counters, not content. Our access to this deployable is setup, teardown, and operational metrics, not content. It is the only service in the system where that distinction is enforceable rather than merely stated, because it is the only one holding readable content at all.
++> **`operator` is absent from every `/v1` row.** `global_admin` is admitted on `POST /v1/events` only. Read, verify, quarantine, and erasure refuse both `global_admin` and `operator`. That is not an omission. On the door where plaintext is returned, Inveniam holds no read: those two roles cannot read a tenant's content or ask this service to reveal it. `GET /health/metrics` is process counters, not content (`/health` stays open). It is the only service in the system where that distinction is enforceable rather than merely stated, because it is the only one holding readable content at all.
+ 
+ ### The ingest door
+ 
+@@ -926,7 +926,7 @@ Full-data ingestion. Schema check first (see [Sidecar door validation](#sidecar-
+ 
+ **Response (202):** `record_id`, `event_id`, `event_root`.
+ 
+-**Erased subject (410 `subject_erased`).** After a completed `POST /v1/erasures` for this `user_id`, a later ingest is refused **before** `SealEvent`. No new key is minted and no ciphertext row is written. The refusal is per-identifier and **permanent until an explicit un-forget** (`POST /v1/erasures/unforget`). After that admin act, ingest is `202` again under a **fresh** key. Old GET/verify of pre-un-forget records stay `erased`. Anchored proofs are unaffected. Redis / forget-set unavailability is **not** this answer — that is `503` `seal_failed` (fail closed).
++**Erased subject (410 `subject_erased`).** After a completed `POST /v1/erasures` for this `user_id`, a later ingest is refused **before** `SealEvent`. No new key is minted and no ciphertext row is written. The refusal is per-identifier and **permanent until an explicit un-forget** (`POST /v1/erasures/unforget`). After that un-forget, ingest is `202` again under a **fresh** key. Old GET/verify of pre-un-forget records stay `erased`. Anchored proofs are unaffected. Redis / forget-set unavailability is **not** this answer — that is `503` `seal_failed` (fail closed).
+ 
+ Validation and post-validation error codes: the two tables under [Sidecar door validation](#sidecar-door-validation-post-v1events-full-data-boundary).
+ 
+@@ -1022,9 +1022,9 @@ Content read-back. Serves only what it can vouch for: the same resolution runs a
+ 
+ ### The erasure door
+ 
+-Tenant self-service crypto-shred: a customer administrator erases one data subject's content by destroying that subject's encryption key. The stored ciphertext is **retained and becomes permanently unreadable**; the anchored proofs are untouched. See [CRYPTO_SHRED_COMPLIANCE_EXPLAINER.md](../plans/CRYPTO_SHRED_COMPLIANCE_EXPLAINER.md) §8 for the compliance framing.
++Tenant self-service crypto-shred: a `company_admin` erases one data subject's content by destroying that subject's encryption key. The stored ciphertext is **retained and becomes permanently unreadable**; the anchored proofs are untouched. See [CRYPTO_SHRED_COMPLIANCE_EXPLAINER.md](../plans/CRYPTO_SHRED_COMPLIANCE_EXPLAINER.md) §8 for the compliance framing.
+ 
+-**Authorization is deliberately narrower than elsewhere in the API.** These four endpoints gate on `company_admin` **only**. `global_admin` — which is admitted by every other admin surface in this specification — is refused here, as is `operator`. Erasure is the customer's own act on the customer's own data; admitting an Inveniam role would create a cross-tenant operator erasure path that was explicitly declined. There is no such path in v1.
++**Authorization is deliberately narrower than elsewhere in the API.** These four endpoints gate on `company_admin` **only**. `global_admin` and `operator` are refused here. Erasure is the customer's own act on the customer's own data; admitting an Inveniam role would create a cross-tenant operator erasure path that was explicitly declined. There is no such path in v1.
+ 
+ **The subject identifier is the raw one you sent at ingest.** Preview, erase, and un-forget take `user_id` — the value your producer put in the event — not a pseudonym you would have no way to compute. The sidecar derives the pseudonym in-process using your tenant's own secret. The raw identifier is **never persisted and never logged**; every stored row and every response field carries the pseudonym instead.
+ 

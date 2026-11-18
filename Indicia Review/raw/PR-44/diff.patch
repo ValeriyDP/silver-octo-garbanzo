@@ -1,0 +1,73 @@
+diff --git a/.security/supplement.md b/.security/supplement.md
+index afb342a..32c1a86 100644
+--- a/.security/supplement.md
++++ b/.security/supplement.md
+@@ -372,7 +372,7 @@ system. Each names the code that mediates the crossing.
+   `internal/keyvault/config.go`.
+ - **Storage transport** — Postgres (`sslmode` code-checked), immudb (TLS required
+   in production and staging via `INDICIA_IMMUDB_TLS`), Redis (production and staging
+-  require a non-empty `INDICIA_REDIS_PASSWORD` and `INDICIA_REDIS_TLS=true`):
++  require a non-empty `INDICIA_REDIS_PASSWORD` (no minimum length) and `INDICIA_REDIS_TLS=true`):
+   `internal/storage/{postgres,immudb,redis}/client.go`.
+ - **Config / container / CI supply chain**: `.github/workflows/`, `Dockerfile*`,
+   `internal/config/config.go:validateProductionConfig`.
+diff --git a/docs/guides/ENVIRONMENT_VARIABLES.md b/docs/guides/ENVIRONMENT_VARIABLES.md
+index 1db3eae..e644dc0 100644
+--- a/docs/guides/ENVIRONMENT_VARIABLES.md
++++ b/docs/guides/ENVIRONMENT_VARIABLES.md
+@@ -71,7 +71,7 @@ Environment variables set in your shell override values from `.env`. The `.env`
+ | Variable | Description |
+ |----------|-------------|
+ | `INDICIA_REDIS_ADDR` | Redis address | e.g. `redis.example.com:6379`. Azure Cache for Redis serves TLS on port 6380, so use that port when `INDICIA_REDIS_TLS` is on. |
+-| `INDICIA_REDIS_PASSWORD` | Password. Required in production and staging (empty or whitespace is rejected). Optional in development and test. |
++| `INDICIA_REDIS_PASSWORD` | Password. Required in production and staging: empty or whitespace is rejected. There is no minimum length. Optional in development and test. |
+ | `INDICIA_REDIS_TLS` | Dial Redis over TLS 1.2 or newer and verify the certificate against the system roots. Default `false` (local docker-compose stays cleartext). Must be `true` in production and staging. Unparseable values fail startup. |
+ | `INDICIA_REDIS_DB` | DB index (default: 0) |
+ | `INDICIA_REDIS_STREAM_NAME` | Event stream name | default: `events:stream` |
+diff --git a/docs/plans/SECURITY_ASSESSMENT_2026-08-14_BACKLOG.md b/docs/plans/SECURITY_ASSESSMENT_2026-08-14_BACKLOG.md
+index 21c5637..f5d676d 100644
+--- a/docs/plans/SECURITY_ASSESSMENT_2026-08-14_BACKLOG.md
++++ b/docs/plans/SECURITY_ASSESSMENT_2026-08-14_BACKLOG.md
+@@ -197,8 +197,14 @@ Confirmed defects, but each needs either a network position, a dependency change
+ > certificate. The check matches Postgres and immudb: each store refuses its known
+ > unsafe default, and Redis has no default password string in this repo, so the
+ > unsafe default is empty. It does not reject short or guessable passwords; neither
+-> do the Postgres and immudb checks. The sidecar's own Redis dial is not covered;
+-> see `cmd-sidecar-1`.
++> do the Postgres and immudb checks. **Decision 2026-10-23 (INV-43527):** non-empty
++> after trim is the deliberate production and staging bar. Redis's compiled default
++> is empty (`getEnvOrDefault("INDICIA_REDIS_PASSWORD", "")`), so empty is the same
++> kind of check as Postgres `"indicia"` and immudb `"immudb"`. Those checks do not
++> impose a length floor either. The 32-character rule on `INDICIA_JWT_SECRET` is a
++> signing-key check, not a store-password policy. Transport protection in production
++> and staging remains `INDICIA_REDIS_TLS=true`. No length floor is added, and this
++> finding stays FIXED. The sidecar's own Redis dial is not covered; see `cmd-sidecar-1`.
+ - **Anchor:** `internal/config/config.go` `validatePasswords` (Postgres and immudb checks; Redis password was absent) and `internal/storage/redis/client.go` `NewClient` (no TLS).
+ - **Verdict:** CONFIRMED, now FIXED.
+ - **Fix:** require a non-empty Redis password and `INDICIA_REDIS_TLS=true` in production and staging, and thread TLS into `redis.Options.TLSConfig`.
+diff --git a/internal/config/doc.go b/internal/config/doc.go
+index 6a60d6c..b1b0e96 100644
+--- a/internal/config/doc.go
++++ b/internal/config/doc.go
+@@ -42,7 +42,7 @@
+ //
+ // In production and staging environments, [Config.Validate] enforces:
+ //   - Explicit storage hosts (no localhost defaults)
+-//   - Non-default passwords for PostgreSQL and immudb, and a non-empty Redis password
++//   - Non-default passwords for PostgreSQL and immudb, and a non-empty Redis password (no minimum length)
+ //   - Redis TLS required (INDICIA_REDIS_TLS=true)
+ //   - immudb TLS required (INDICIA_IMMUDB_TLS=true)
+ //   - JWT secret minimum 32 characters and not in banned list
+diff --git a/internal/storage/redis/doc.go b/internal/storage/redis/doc.go
+index 9fbb240..e3352d4 100644
+--- a/internal/storage/redis/doc.go
++++ b/internal/storage/redis/doc.go
+@@ -24,7 +24,7 @@
+ //
+ // Redis connection is configured via environment variables:
+ //   - INDICIA_REDIS_ADDR: Redis server address
+-//   - INDICIA_REDIS_PASSWORD: Authentication password (required in production and staging)
++//   - INDICIA_REDIS_PASSWORD: Authentication password (required in production and staging; non-empty after trim, no minimum length)
+ //   - INDICIA_REDIS_TLS: dial over TLS 1.2+ (default false; required true in production and staging)
+ //   - INDICIA_REDIS_DB: Database number
+ //   - INDICIA_REDIS_STREAM_NAME: Event stream name

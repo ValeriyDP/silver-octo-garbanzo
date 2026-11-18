@@ -1,0 +1,414 @@
+diff --git a/cmd/api/main.go b/cmd/api/main.go
+index e4a7cdb..b035b22 100644
+--- a/cmd/api/main.go
++++ b/cmd/api/main.go
+@@ -118,9 +118,8 @@ func run() error {
+ 	}
+ 	defer shutdownTracer(tracerProvider, &log)
+ 
+-	// A bad CA file is misconfiguration, not an outage. initStorage keeps
+-	// running when immudb is unreachable, so build the TLS config here and
+-	// fail startup before that retry loop.
++	// A bad CA file is misconfiguration, not an outage. Build the TLS config
++	// here so startup fails before the immudb connect retry loop.
+ 	var immudbTLS *tls.Config
+ 	if cfg.Immudb.TLS {
+ 		immudbTLS, err = immudb.NewTLSConfig(cfg.Immudb.Host, cfg.Immudb.TLSCAFile)
+@@ -129,8 +128,13 @@ func run() error {
+ 		}
+ 	}
+ 
+-	// Initialize storage clients.
+-	clients := initStorage(ctx, cfg, &log, immudbTLS)
++	// Initialize storage clients. immudb is required: without it the process
++	// must not start, because event workers would otherwise join the shared
++	// stream and dead-letter every event they pull.
++	clients, err := initStorage(ctx, cfg, &log, immudbTLS)
++	if err != nil {
++		return err
++	}
+ 	defer clients.close(ctx, &log)
+ 
+ 	// Run database migrations if PostgreSQL is connected.
+@@ -324,13 +328,16 @@ func startEventTypePoller(
+ // Two distinct failure modes, two distinct responses:
+ //
+ //   - Missing storage (auditMissingDependencies, checked below BEFORE
+-//     construction): an ENVIRONMENTAL gap — one or more of Postgres, immudb,
+-//     or Redis failed to connect (initStorage leaves it nil and the app
+-//     continues in degraded mode). This is a supported degraded-startup mode:
+-//     wireAudit logs Warn, leaves deps.AuditEmitter and deps.AuditProbe nil,
+-//     and returns a nil error so the process keeps starting. router.go must
+-//     not attach the Audit middleware to any route when AuditEmitter is nil,
+-//     so routes register unaudited rather than panicking or emitting into a
++//     construction): an ENVIRONMENTAL gap — Postgres or Redis failed to
++//     connect (initStorage leaves that client nil and the app continues in
++//     degraded mode). immudb is not part of this mode: initStorage returns an
++//     error when immudb cannot connect, and run() exits before wireAudit.
++//     The immudb nil check stays so a wiring defect is still caught. This is
++//     a supported degraded-startup mode for Postgres and Redis: wireAudit
++//     logs Warn, leaves deps.AuditEmitter and deps.AuditProbe nil, and
++//     returns a nil error so the process keeps starting. router.go must not
++//     attach the Audit middleware to any route when AuditEmitter is nil, so
++//     routes register unaudited rather than panicking or emitting into a
+ //     half-wired path.
+ //   - Capability already claimed (audit.NewEmitter's error, wrapping
+ //     core.EventService.AuditWriteCapability): a deterministic CODE DEFECT —
+@@ -400,8 +407,11 @@ func initHub(cfg *config.Config, log *zerolog.Logger, clients *storageClients) b
+ }
+ 
+ // initStorage connects to PostgreSQL, immudb, and Redis with retry logic.
+-// Connections that fail are left nil; the app continues in degraded mode.
+-func initStorage(ctx context.Context, cfg *config.Config, log *zerolog.Logger, immudbTLS *tls.Config) *storageClients {
++// immudb is required: a failed connect closes any client already opened and
++// returns an error so the process exits instead of starting workers that
++// cannot persist events. PostgreSQL and Redis connections that fail are left
++// nil; the app continues in degraded mode for those two.
++func initStorage(ctx context.Context, cfg *config.Config, log *zerolog.Logger, immudbTLS *tls.Config) (*storageClients, error) {
+ 	clients := &storageClients{}
+ 	retryCfg := retry.DefaultConfig()
+ 
+@@ -443,10 +453,12 @@ func initStorage(ctx context.Context, cfg *config.Config, log *zerolog.Logger, i
+ 		return immudbClient.Connect(ctx)
+ 	})
+ 	if err != nil {
+-		log.Warn().Err(err).Msg("failed to connect to immudb after retries - health checks will report error")
+-	} else {
+-		clients.immudb = immudbClient
++		// Postgres may already be open. Close it before returning so the
++		// caller can exit without a deferred close on a nil client set.
++		clients.close(ctx, log)
++		return nil, fmt.Errorf("connect immudb: %w", err)
+ 	}
++	clients.immudb = immudbClient
+ 
+ 	// Redis
+ 	redisCfg := &redis.Config{
+@@ -467,7 +479,7 @@ func initStorage(ctx context.Context, cfg *config.Config, log *zerolog.Logger, i
+ 		clients.redis = redisClient
+ 	}
+ 
+-	return clients
++	return clients, nil
+ }
+ 
+ // close shuts down all connected storage clients.
+diff --git a/cmd/api/main_test.go b/cmd/api/main_test.go
+index 184acfb..4ab11de 100644
+--- a/cmd/api/main_test.go
++++ b/cmd/api/main_test.go
+@@ -1,13 +1,17 @@
+ package main
+ 
+ import (
++	"context"
++	"net"
+ 	"reflect"
++	"strings"
+ 	"testing"
+ 
+ 	"github.com/rs/zerolog"
+ 
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/api"
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/audit"
++	"github.com/inveniamcapital/InveniamIndicia/internal/config"
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/core"
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/storage/immudb"
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/storage/postgres"
+@@ -128,3 +132,40 @@ func TestWireAudit(t *testing.T) {
+ 		}
+ 	})
+ }
++
++// TestInitStorage_ImmudbUnreachable_ReturnsError pins immudb as a hard
++// startup dependency. A process that kept running after a failed connect
++// would start event workers with a nil client, and those workers would
++// dead-letter events from the shared Redis stream.
++func TestInitStorage_ImmudbUnreachable_ReturnsError(t *testing.T) {
++	ln, err := net.Listen("tcp", "127.0.0.1:0")
++	if err != nil {
++		t.Fatal(err)
++	}
++	addr, ok := ln.Addr().(*net.TCPAddr)
++	if !ok {
++		t.Fatalf("listener addr %T is not *net.TCPAddr", ln.Addr())
++	}
++	port := addr.Port
++	if err := ln.Close(); err != nil {
++		t.Fatal(err)
++	}
++
++	logger := zerolog.Nop()
++	cfg := &config.Config{
++		Postgres: config.PostgresConfig{Host: "127.0.0.1", Port: port},
++		Immudb:   config.ImmudbConfig{Host: "127.0.0.1", Port: port},
++	}
++
++	clients, err := initStorage(context.Background(), cfg, &logger, nil)
++	if clients != nil {
++		clients.close(context.Background(), &logger)
++		t.Fatal("expected nil clients when immudb connect fails")
++	}
++	if err == nil {
++		t.Fatal("expected error when immudb is unreachable")
++	}
++	if !strings.Contains(err.Error(), "immudb") {
++		t.Fatalf("error = %q, want it to mention immudb", err)
++	}
++}
+diff --git a/docs/api/API_SPECIFICATION.md b/docs/api/API_SPECIFICATION.md
+index 909d33a..14894da 100644
+--- a/docs/api/API_SPECIFICATION.md
++++ b/docs/api/API_SPECIFICATION.md
+@@ -588,7 +588,7 @@ Prometheus metrics, in the text exposition format.
+ 
+ ### GET /ready
+ 
+-Readiness probe — returns 200 only if PostgreSQL, immudb, and Redis are connected. Returns 503 with reason if not ready.
++Readiness probe — returns 200 only if PostgreSQL, immudb, and Redis are connected and an integrity latch is attached and clear. A missing integrity latch is not ready and returns 503 with reason `integrity service not connected`. A latched verification failure returns 503 with reason `integrity verification failed`. Returns 503 with reason if not ready.
+ 
+ **Response:** `{"ready": true}` or `{"ready": false, "reason": "Redis not connected"}`
+ 
+diff --git a/docs/devops/IMMUDB_VERIFICATION_STRATEGY.md b/docs/devops/IMMUDB_VERIFICATION_STRATEGY.md
+index aa0f50d..1cd11a3 100644
+--- a/docs/devops/IMMUDB_VERIFICATION_STRATEGY.md
++++ b/docs/devops/IMMUDB_VERIFICATION_STRATEGY.md
+@@ -125,6 +125,8 @@ An **integrity failure** is one of immudb's sentinels: `ErrCorruptedData` (inclu
+ - `GET /health` stays HTTP 200, with overall `degraded` and the integrity component `verification_failed`
+ - `GET /health/live` is unchanged, so a liveness probe does not restart the process
+ 
++The API exits at startup if immudb cannot be reached, so a running process always has a latch. If a latch is ever missing, that is a wiring defect, not tampering. `GET /ready` returns `503` with reason `integrity service not connected`. `GET /health` stays HTTP 200, with overall `degraded` and the integrity component `error`. `indicia_storage_immudb_integrity_failed` stays `0`. `GET /health/live` is unchanged.
++
+ A later successful audit does not clear the latch. One good proof does not restore trust after a bad one.
+ 
+ A **transport, session, or other error** increments `indicia_storage_immudb_audits_total{result="error"}` and is logged without a tampering claim. It does not latch and does not change `/ready`.
+diff --git a/internal/api/handlers/health.go b/internal/api/handlers/health.go
+index 5cca1d0..39d173b 100644
+--- a/internal/api/handlers/health.go
++++ b/internal/api/handlers/health.go
+@@ -105,15 +105,14 @@ func (h *HealthHandler) SetImmudb(i Pinger) {
+ 	h.immudb = i
+ }
+ 
+-// SetIntegrityLatch attaches the immudb auditor latch. A nil latch is ignored.
++// SetIntegrityLatch attaches the immudb auditor latch. A nil latch means the
++// integrity service is not attached: /ready returns 503 with reason
++// "integrity service not connected" and /health reports integrity "error".
++// That is a wiring defect, not a verification failure.
+ func (h *HealthHandler) SetIntegrityLatch(l IntegrityLatch) {
+ 	h.integrityLatch = l
+ }
+ 
+-func (h *HealthHandler) integrityFailed() bool {
+-	return h.integrityLatch != nil && h.integrityLatch.IntegrityFailed()
+-}
+-
+ // SetWorkerDeps sets the dependencies needed for the /health/workers endpoint.
+ func (h *HealthHandler) SetWorkerDeps(pool *workers.WorkerPool, pgClient *postgres.Client, redisClient *redis.Client, streamCfg WorkerStreamConfig) {
+ 	h.workerPool = pool
+@@ -323,7 +322,11 @@ func (h *HealthHandler) Health(c *gin.Context) {
+ 			break
+ 		}
+ 	}
+-	if h.integrityFailed() {
++	switch {
++	case h.integrityLatch == nil:
++		components[componentIntegrity] = ComponentStatus{Status: statusError}
++		overall = statusDegraded
++	case h.integrityLatch.IntegrityFailed():
+ 		components[componentIntegrity] = ComponentStatus{Status: statusVerificationFailed}
+ 		overall = statusDegraded
+ 	}
+@@ -386,7 +389,14 @@ func (h *HealthHandler) Health(c *gin.Context) {
+ //	@Failure	503	{object}	ReadyResponse
+ //	@Router		/ready [get]
+ func (h *HealthHandler) Ready(c *gin.Context) {
+-	if h.integrityFailed() {
++	switch {
++	case h.integrityLatch == nil:
++		c.JSON(http.StatusServiceUnavailable, ReadyResponse{
++			Ready:  false,
++			Reason: reasonIntegrityNotConnected,
++		})
++		return
++	case h.integrityLatch.IntegrityFailed():
+ 		c.JSON(http.StatusServiceUnavailable, ReadyResponse{
+ 			Ready:  false,
+ 			Reason: reasonIntegrityVerificationFailed,
+diff --git a/internal/api/handlers/health_test.go b/internal/api/handlers/health_test.go
+index d96abed..f3dcace 100644
+--- a/internal/api/handlers/health_test.go
++++ b/internal/api/handlers/health_test.go
+@@ -76,6 +76,7 @@ func setupTestRouterWithStorage(postgres, immudb handlers.Pinger) *gin.Engine {
+ 	handler := handlers.NewHealthHandler(cfg)
+ 	handler.SetPostgres(postgres)
+ 	handler.SetImmudb(immudb)
++	handler.SetIntegrityLatch(&mockLatch{failed: false})
+ 
+ 	router := gin.New()
+ 	router.GET("/health", handler.Health)
+@@ -123,7 +124,7 @@ func TestHealth_ResponseFormat(t *testing.T) {
+ 		t.Errorf("invalid status %q: must be 'healthy' or 'degraded'", resp.Status)
+ 	}
+ 
+-	// Storage statuses must be one of: connected, error, unknown
++	// Storage statuses must be one of: connected, error, unknown.
+ 	validStorageStatuses := map[string]bool{testStatusConnected: true, testStatusError: true, testStatusUnknown: true}
+ 	if !validStorageStatuses[resp.Components["store"].Status] {
+ 		t.Errorf("invalid store status %q", resp.Components["store"].Status)
+@@ -335,7 +336,7 @@ func TestHealth_BothError(t *testing.T) {
+ 	}
+ }
+ 
+-// TestHealth_NoStorage verifies degraded/unknown when no storage configured.
++// TestHealth_NoStorage verifies a missing integrity latch is not healthy.
+ func TestHealth_NoStorage(t *testing.T) {
+ 	router := setupTestRouter()
+ 
+@@ -344,20 +345,23 @@ func TestHealth_NoStorage(t *testing.T) {
+ 
+ 	router.ServeHTTP(w, req)
+ 
++	if w.Code != http.StatusOK {
++		t.Fatalf("status = %d, want 200", w.Code)
++	}
++
+ 	var resp handlers.HealthResponse
+ 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+ 		t.Fatalf("failed to unmarshal response: %v", err)
+ 	}
+ 
+-	// No storage configured means unknown, which is healthy (dev mode).
+-	if resp.Status != testStatusHealthy {
+-		t.Errorf("expected status 'healthy' (no errors), got %q", resp.Status)
++	if resp.Status != testStatusDegraded {
++		t.Errorf("expected status 'degraded', got %q", resp.Status)
+ 	}
+ 	if resp.Components["store"].Status != testStatusUnknown {
+ 		t.Errorf("expected store 'unknown', got %q", resp.Components["store"].Status)
+ 	}
+-	if resp.Components["integrity"].Status != testStatusUnknown {
+-		t.Errorf("expected integrity 'unknown', got %q", resp.Components["integrity"].Status)
++	if resp.Components["integrity"].Status != testStatusError {
++		t.Errorf("expected integrity 'error', got %q", resp.Components["integrity"].Status)
+ 	}
+ }
+ 
+@@ -657,7 +661,7 @@ func TestAlerts_PublicHealthStripsAction(t *testing.T) {
+ 	}
+ }
+ 
+-// TestReady_NoStorage verifies 200 when no storage configured (dev mode).
++// TestReady_NoStorage verifies a missing integrity latch is not ready.
+ func TestReady_NoStorage(t *testing.T) {
+ 	router := setupTestRouter()
+ 
+@@ -666,9 +670,8 @@ func TestReady_NoStorage(t *testing.T) {
+ 
+ 	router.ServeHTTP(w, req)
+ 
+-	// Should be ready in dev mode with no storage configured.
+-	if w.Code != http.StatusOK {
+-		t.Errorf("expected status 200, got %d", w.Code)
++	if w.Code != http.StatusServiceUnavailable {
++		t.Fatalf("status = %d, want 503", w.Code)
+ 	}
+ 
+ 	var resp handlers.ReadyResponse
+@@ -676,8 +679,11 @@ func TestReady_NoStorage(t *testing.T) {
+ 		t.Fatalf("failed to unmarshal response: %v", err)
+ 	}
+ 
+-	if !resp.Ready {
+-		t.Error("expected ready=true for dev mode without storage")
++	if resp.Ready {
++		t.Fatal("expected ready=false")
++	}
++	if resp.Reason != "integrity service not connected" {
++		t.Fatalf("reason = %q", resp.Reason)
+ 	}
+ }
+ 
+@@ -1134,7 +1140,7 @@ func TestLive_IgnoresIntegrityLatch(t *testing.T) {
+ 	}
+ }
+ 
+-func TestReady_NoLatchSet_Unchanged(t *testing.T) {
++func TestReady_LatchClear_Returns200(t *testing.T) {
+ 	router := setupRouterWithLatch(&mockPinger{}, &mockPinger{}, &mockLatch{failed: false})
+ 
+ 	req := httptest.NewRequest(http.MethodGet, "/ready", nil)
+@@ -1152,3 +1158,47 @@ func TestReady_NoLatchSet_Unchanged(t *testing.T) {
+ 		t.Fatal("expected ready=true")
+ 	}
+ }
++
++func TestReady_NilLatch_Returns503(t *testing.T) {
++	router := setupRouterWithLatch(&mockPinger{}, &mockPinger{}, nil)
++
++	req := httptest.NewRequest(http.MethodGet, "/ready", nil)
++	w := httptest.NewRecorder()
++	router.ServeHTTP(w, req)
++
++	if w.Code != http.StatusServiceUnavailable {
++		t.Fatalf("status = %d, want 503", w.Code)
++	}
++	var resp handlers.ReadyResponse
++	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
++		t.Fatal(err)
++	}
++	if resp.Ready {
++		t.Fatal("expected ready=false")
++	}
++	if resp.Reason != "integrity service not connected" {
++		t.Fatalf("reason = %q", resp.Reason)
++	}
++}
++
++func TestHealth_NilLatch_IntegrityError(t *testing.T) {
++	router := setupRouterWithLatch(&mockPinger{}, &mockPinger{}, nil)
++
++	req := httptest.NewRequest(http.MethodGet, "/health", nil)
++	w := httptest.NewRecorder()
++	router.ServeHTTP(w, req)
++
++	if w.Code != http.StatusOK {
++		t.Fatalf("status = %d, want 200", w.Code)
++	}
++	var resp handlers.HealthResponse
++	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
++		t.Fatal(err)
++	}
++	if resp.Status != testStatusDegraded {
++		t.Fatalf("status = %q, want degraded", resp.Status)
++	}
++	if resp.Components["integrity"].Status != testStatusError {
++		t.Fatalf("integrity = %q, want error", resp.Components["integrity"].Status)
++	}
++}
+diff --git a/tests/integration/tenant_event_types_test.go b/tests/integration/tenant_event_types_test.go
+index a166112..3b5bacf 100644
+--- a/tests/integration/tenant_event_types_test.go
++++ b/tests/integration/tenant_event_types_test.go
+@@ -91,6 +91,13 @@ func (s togglingRegistrySource) LoadAll(ctx context.Context) ([]eventtypes.Regis
+ 	return s.inner.LoadAll(ctx)
+ }
+ 
++// clearIntegrityLatch is a present latch that has not seen a verification
++// failure. startTenantCore attaches it so /ready exercises registry staleness
++// rather than the missing-latch fail-closed path.
++type clearIntegrityLatch struct{}
++
++func (clearIntegrityLatch) IntegrityFailed() bool { return false }
++
+ func startTenantCore(ctx context.Context, t *testing.T, pg *postgres.Client, window time.Duration, company string) *tenantCoreStack {
+ 	t.Helper()
+ 	logger := testLogger()
+@@ -120,6 +127,7 @@ func startTenantCore(ctx context.Context, t *testing.T, pg *postgres.Client, win
+ 	et.SetRegistryBroadcaster(bus)
+ 	events := handlers.NewEventsHandler(svc, nil, pg)
+ 	health := handlers.NewHealthHandler(&config.Config{})
++	health.SetIntegrityLatch(clearIntegrityLatch{})
+ 	health.SetRegistry(watch, true, poller.ProbeAge)
+ 
+ 	auditLog := zerolog.Nop()

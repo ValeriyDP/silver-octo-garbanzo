@@ -1,0 +1,13 @@
+{
+  "server_url": "https://www.plantuml.com/plantuml",
+  "header": "",
+  "debounce": 3,
+  "localJar": "~/work/inveniam/plantuml-mit-1.2026.6.jar",
+  "javaPath": "/opt/homebrew/opt/openjdk/bin/java",
+  "dotPath": "/opt/homebrew/bin/dot",
+  "defaultProcessor": "png",
+  "cache": 60,
+  "exportPath": "",
+  "lightHeader": "",
+  "darkHeader": ""
+}

@@ -1,0 +1,987 @@
+diff --git a/cmd/sidecar/main.go b/cmd/sidecar/main.go
+index 137fc33..551459d 100644
+--- a/cmd/sidecar/main.go
++++ b/cmd/sidecar/main.go
+@@ -63,6 +63,7 @@ import (
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/sidecar/sweep"
+ 	"github.com/inveniamcapital/InveniamIndicia/pkg/eventtypes"
+ 	"github.com/inveniamcapital/InveniamIndicia/pkg/metrics"
++	"github.com/inveniamcapital/InveniamIndicia/pkg/tracing"
+ )
+ 
+ const (
+@@ -117,6 +118,12 @@ func run() error {
+ 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+ 	defer stop()
+ 
++	tracerProvider, err := initTracing(ctx, cfg, logger)
++	if err != nil {
++		return err
++	}
++	defer shutdownTracer(tracerProvider, logger)
++
+ 	pool, recordStore, err := openRecordStore(ctx, cfg.RecordStoreDSN, logger)
+ 	if err != nil {
+ 		return err
+@@ -196,6 +203,7 @@ func run() error {
+ 		Auth:              sidecar.NewFusionAuthAuth(svc.validator),
+ 		RegistryReadiness: tenantSync,
+ 		SwaggerEnabled:    cfg.SwaggerEnabled,
++		TracingEnabled:    cfg.Tracing.Enabled,
+ 	})
+ 
+ 	srv := &http.Server{
+@@ -223,6 +231,51 @@ func run() error {
+ 	return serveUntilSignal(ctx, srv, logger)
+ }
+ 
++// initTracing sets up OpenTelemetry tracing. A disabled config returns a no-op
++// provider.
++//
++//nolint:gocritic // hugeParam: zerolog.Logger is designed for by-value use.
++func initTracing(ctx context.Context, cfg sidecar.Config, logger zerolog.Logger) (*tracing.TracerProvider, error) {
++	tracerProvider, err := tracing.Setup(ctx, &tracing.Config{
++		Enabled:        cfg.Tracing.Enabled,
++		ServiceName:    "indicia-sidecar",
++		ServiceVersion: Version,
++		Environment:    cfg.Environment,
++		OTLPEndpoint:   cfg.Tracing.OTLPEndpoint,
++		Insecure:       cfg.Tracing.Insecure,
++		SampleRate:     cfg.Tracing.SampleRate,
++	})
++	if err != nil {
++		return nil, fmt.Errorf("setup tracing: %w", err)
++	}
++
++	if cfg.Tracing.Enabled && cfg.Tracing.OTLPEndpoint != "" {
++		level := zerolog.InfoLevel
++		if cfg.Tracing.Insecure {
++			level = zerolog.WarnLevel
++		}
++		logger.WithLevel(level).
++			Str("endpoint", cfg.Tracing.OTLPEndpoint).
++			Float64("sample_rate", cfg.Tracing.SampleRate).
++			Bool("insecure", cfg.Tracing.Insecure).
++			Msg("OpenTelemetry tracing enabled")
++	}
++
++	return tracerProvider, nil
++}
++
++// shutdownTracer flushes in-flight spans. The timeout is independent of the
++// signal context, which is already canceled by the time this runs.
++//
++//nolint:gocritic // hugeParam: zerolog.Logger is designed for by-value use.
++func shutdownTracer(tp *tracing.TracerProvider, logger zerolog.Logger) {
++	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
++	defer cancel()
++	if err := tp.Shutdown(shutdownCtx); err != nil {
++		logger.Error().Err(err).Msg("failed to shutdown tracer provider")
++	}
++}
++
+ // domainServices are the services the door needs before any HTTP wiring exists.
+ // They are grouped because they share one property worth stating once: each is
+ // built from a source the core also reads, and a divergence in any of them has
+diff --git a/docs/guides/ENVIRONMENT_VARIABLES.md b/docs/guides/ENVIRONMENT_VARIABLES.md
+index 1db3eae..2692134 100644
+--- a/docs/guides/ENVIRONMENT_VARIABLES.md
++++ b/docs/guides/ENVIRONMENT_VARIABLES.md
+@@ -158,12 +158,14 @@ configuration mirrors as `HubConfig` and `ChainConfig`:
+ 
+ ### Tracing (OpenTelemetry)
+ 
++Both `cmd/api` and `cmd/sidecar` read these variables.
++
+ | Variable | Description |
+ |----------|-------------|
+ | `INDICIA_TRACING_ENABLED` | Enable OpenTelemetry tracing (default: `false`) |
+ | `INDICIA_OTEL_ENDPOINT` | OTLP HTTP collector as `host` or `host:port` (for example `localhost:4318`). No scheme and no path. The export path is `/v1/traces`. |
+ | `INDICIA_OTEL_INSECURE` | Export over plain HTTP. Default `false` (TLS with the system roots and hostname verification). `true` is local development only; production and staging refuse to start. A value that is not a boolean is a startup error. |
+-| `INDICIA_TRACING_SAMPLE_RATE` | Trace sampling ratio, 0.0–1.0 (default: `1.0`) |
++| `INDICIA_TRACING_SAMPLE_RATE` | Trace sampling ratio, 0.0–1.0 (default: `1.0`). Core and the sidecar each sample on their own, so the two must use the same value. Different rates split one request into traces that do not join up. |
+ | `OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE` | Optional path to a PEM CA file when the collector certificate is not in the system trust store. Standard OpenTelemetry variable. It cannot change the scheme; `INDICIA_OTEL_INSECURE` is the only cleartext switch. |
+ 
+ ### Swagger / API docs
+@@ -225,6 +227,8 @@ The keyvault library encrypts content sidecars under per-subject Vault Transit k
+ 
+ The sidecar is the only Inveniam Indicia component that accepts readable content. It classifies each event, pseudonymizes the quasi-identifiers, seals the content under the data subject's key, stores the ciphertext in **its own** database, and forwards a content-free envelope to the core. The core never sees content, which is why these settings are separate from the core's: pointing the sidecar at the core's database would defeat the separation the design exists for.
+ 
++The sidecar also reads **`INDICIA_ENVIRONMENT`** (`development`, `staging`, `production`, `test`; default `development`). It is the same check the core runs: an unknown name fails startup, and `production` or `staging` refuses `INDICIA_OTEL_INSECURE=true`. Set it to the same value as the core, or every sidecar span is labelled `development`.
++
+ The sidecar also needs the **keyvault** variables above (it does the sealing) and FusionAuth settings: it validates tokens with the same loader and defaults the core uses, reading `FUSIONAUTH_BASE_URL`, `FUSIONAUTH_APPLICATION_ID`, `FUSIONAUTH_TENANT_ID` and `JWT_ROLES_CLAIM` where the core reads `INDICIA_FUSIONAUTH_URL`, `INDICIA_FUSIONAUTH_APPLICATION_ID`, `INDICIA_FUSIONAUTH_TENANT_ID` and `INDICIA_JWT_ROLES_CLAIM`. Every other FusionAuth setting keeps its `INDICIA_` name, so given the same values the two accept exactly the same tokens. It does **not** need the core's Postgres, immudb, or Hub settings.
+ 
+ It also reads **`INDICIA_EVENT_TYPES_SYNC_INTERVAL`** (see [Batch settings](#batch-settings)) — per-tenant probe window on the sidecar ingest path. Tenant types are loaded with the **producer JWT** via `GET /event-types` (no extra FusionAuth app). Compiled types are in RAM at start; a tenant's schemas appear on that tenant's first ingest (or next probe). Sidecars do **not** subscribe to the core Redis registry channel; a withdrawn type on the sidecar waits for that window or for `Invalidate` after the core rejects the envelope.
+diff --git a/go.mod b/go.mod
+index 71340e2..23960f9 100644
+--- a/go.mod
++++ b/go.mod
+@@ -26,6 +26,7 @@ require (
+ 	github.com/testcontainers/testcontainers-go/modules/postgres v0.44.0
+ 	github.com/testcontainers/testcontainers-go/modules/redis v0.44.0
+ 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.72.0
++	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0
+ 	go.opentelemetry.io/otel v1.47.0
+ 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.47.0
+ 	go.opentelemetry.io/otel/sdk v1.47.0
+@@ -169,7 +170,6 @@ require (
+ 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
+ 	go.mongodb.org/mongo-driver/v2 v2.9.1 // indirect
+ 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
+-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.70.0 // indirect
+ 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.47.0 // indirect
+ 	go.opentelemetry.io/otel/log v1.47.0 // indirect
+ 	go.opentelemetry.io/otel/metric v1.47.0 // indirect
+diff --git a/go.sum b/go.sum
+index dc044f6..38998ab 100644
+--- a/go.sum
++++ b/go.sum
+@@ -437,8 +437,8 @@ go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ
+ go.opentelemetry.io/auto/sdk v1.2.1/go.mod h1:KRTj+aOaElaLi+wW1kO/DZRXwkF4C5xPbEe3ZiIhN7Y=
+ go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.72.0 h1:Vgm7vrC26vvecffpDcy2UINqBvASUg5qkfZle3Yrkug=
+ go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.72.0/go.mod h1:zgCChxie/dA3qG7IgZGswax6voxkOR4+33msLT/RgNg=
+-go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.70.0 h1:LMuyCAyfalSjDyjdC65nK6N0zoTT63+E/u95X0JovZI=
+-go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.70.0/go.mod h1:085m8qbm4hgc8rZWGDEa4vmyyo2c3nPxUslYUKUIU04=
++go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0 h1:LxwW/9ctSCv+QkE/cLR7M91ZIkXNMqJtEMi1vCw9U8s=
++go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0/go.mod h1:tOsftB4SslBwwErVEPaenU2RpThXWPIU8DoJHEC4dyw=
+ go.opentelemetry.io/contrib/propagators/b3 v1.47.0 h1:vlKDmtjhe1R0d7kdov/+KVTKWOKeGLyohB+iXoDPRMQ=
+ go.opentelemetry.io/contrib/propagators/b3 v1.47.0/go.mod h1:0zRiXIfXU30PKYMsdbqYbGK8iHF8KqyPi0qdXT2wAuE=
+ go.opentelemetry.io/otel v1.47.0 h1:j7ALJ/zgkS7Z6aeJW09p8VC9804bC+PpeTfCD4XPnOM=
+diff --git a/internal/config/config.go b/internal/config/config.go
+index 06fbf6c..d3781f4 100644
+--- a/internal/config/config.go
++++ b/internal/config/config.go
+@@ -9,6 +9,11 @@ import (
+ 	"time"
+ )
+ 
++const (
++	envProduction = "production"
++	envStaging    = "staging"
++)
++
+ // Config holds all application configuration.
+ type Config struct {
+ 	Environment string
+@@ -99,6 +104,26 @@ type TracingConfig struct {
+ 	Insecure bool
+ }
+ 
++// Validate rejects cleartext export in production and staging, and rejects an
++// OTLP endpoint that is not host or host:port. The exporter takes the scheme
++// from Insecure. A scheme or path in the endpoint would be ignored or misread
++// (an "https://..." value is dialed as the host of a cleartext URL). The
++// cleartext check runs even when tracing is disabled, so a switch sitting in
++// a production manifest cannot pass startup. cmd/api and cmd/sidecar both call
++// this so the two processes cannot drift.
++func (t TracingConfig) Validate(environment string) error {
++	if (environment == envProduction || environment == envStaging) && t.Insecure {
++		return fmt.Errorf("INDICIA_OTEL_INSECURE must be false in %s", environment)
++	}
++	if !t.Enabled || t.OTLPEndpoint == "" {
++		return nil
++	}
++	if strings.Contains(t.OTLPEndpoint, "://") || strings.Contains(t.OTLPEndpoint, "/") {
++		return fmt.Errorf("INDICIA_OTEL_ENDPOINT must be host or host:port, not a URL")
++	}
++	return nil
++}
++
+ // HubConfig holds the settings for reaching the Inveniam Hub — the signing
+ // service the core calls to WRITE anchors. These are transport and credential
+ // concerns only; what is being anchored, and to which chain, lives on
+@@ -304,7 +329,7 @@ func Load() (*Config, error) {
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	tracingCfg, err := loadTracingConfig()
++	tracingCfg, err := LoadTracingConfig()
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -398,14 +423,8 @@ func Load() (*Config, error) {
+ // Validate validates the configuration.
+ // In production and staging, required fields must be explicitly set.
+ func (c *Config) Validate() error {
+-	validEnvs := map[string]bool{
+-		"development": true,
+-		"staging":     true,
+-		"production":  true,
+-		"test":        true,
+-	}
+-	if !validEnvs[c.Environment] {
+-		return fmt.Errorf("invalid environment %q: must be one of development, staging, production, test", c.Environment)
++	if err := ValidateEnvironment(c.Environment); err != nil {
++		return err
+ 	}
+ 
+ 	if c.Port <= 0 || c.Port > 65535 {
+@@ -422,7 +441,7 @@ func (c *Config) Validate() error {
+ 	}
+ 
+ 	// In production/staging, critical config must be explicitly provided.
+-	if c.Environment == "production" || c.Environment == "staging" {
++	if c.Environment == envProduction || c.Environment == envStaging {
+ 		if err := c.validateProductionConfig(); err != nil {
+ 			return err
+ 		}
+@@ -443,7 +462,20 @@ func (c *Config) Validate() error {
+ 		}
+ 	}
+ 
+-	return c.validateTracing()
++	return c.Tracing.Validate(c.Environment)
++}
++
++// ValidateEnvironment accepts the deployment names both processes share.
++// cmd/api checks it inside Config.Validate. cmd/sidecar checks it while
++// loading tracing config, so a typo fails startup instead of labeling
++// every span with an unknown environment.
++func ValidateEnvironment(environment string) error {
++	switch environment {
++	case "development", envStaging, envProduction, "test":
++		return nil
++	default:
++		return fmt.Errorf("invalid environment %q: must be one of development, staging, production, test", environment)
++	}
+ }
+ 
+ // validateChain enforces explicit anchoring-chain configuration whenever the
+@@ -490,32 +522,12 @@ func (c *Config) validateProductionConfig() error {
+ 	if err := c.validateHub(); err != nil {
+ 		return err
+ 	}
+-	// Reject the flag even when tracing is disabled, so a cleartext switch
+-	// sitting in a production manifest cannot pass startup.
+-	if c.Tracing.Insecure {
+-		return fmt.Errorf("INDICIA_OTEL_INSECURE must be false in %s", c.Environment)
+-	}
+ 	if c.Immudb.AuditInterval <= 0 {
+ 		return fmt.Errorf("INDICIA_IMMUDB_AUDIT_INTERVAL must be greater than zero in %s", c.Environment)
+ 	}
+ 	return nil
+ }
+ 
+-// validateTracing rejects an OTLP endpoint that is not host or host:port.
+-// The exporter takes the scheme from Insecure. A scheme or path in the
+-// endpoint would be ignored or misread (an "https://..." value is dialed as
+-// the host of a cleartext URL).
+-func (c *Config) validateTracing() error {
+-	if !c.Tracing.Enabled || c.Tracing.OTLPEndpoint == "" {
+-		return nil
+-	}
+-	ep := c.Tracing.OTLPEndpoint
+-	if strings.Contains(ep, "://") || strings.Contains(ep, "/") {
+-		return fmt.Errorf("INDICIA_OTEL_ENDPOINT must be host or host:port, not a URL")
+-	}
+-	return nil
+-}
+-
+ // validateHub validates Hub configuration when enabled.
+ func (c *Config) validateHub() error {
+ 	if !c.Hub.Enabled {
+@@ -808,9 +820,10 @@ func getEnvFloatOrDefault(key string, defaultValue float64) float64 {
+ 	return defaultValue
+ }
+ 
+-// loadTracingConfig reads tracing settings. INDICIA_OTEL_INSECURE is parsed
+-// strictly: a typo fails startup instead of silently leaving cleartext on.
+-func loadTracingConfig() (TracingConfig, error) {
++// LoadTracingConfig reads tracing settings for cmd/api and cmd/sidecar.
++// INDICIA_OTEL_INSECURE is parsed strictly: a typo fails startup instead of
++// silently leaving cleartext on.
++func LoadTracingConfig() (TracingConfig, error) {
+ 	insecure, err := getEnvBoolStrict("INDICIA_OTEL_INSECURE", false)
+ 	if err != nil {
+ 		return TracingConfig{}, err
+diff --git a/internal/registrysync/ingest.go b/internal/registrysync/ingest.go
+index aabaacf..fae60cc 100644
+--- a/internal/registrysync/ingest.go
++++ b/internal/registrysync/ingest.go
+@@ -12,6 +12,9 @@ import (
+ 	"sync/atomic"
+ 	"time"
+ 
++	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
++	"go.opentelemetry.io/otel/propagation"
++
+ 	"github.com/inveniamcapital/InveniamIndicia/pkg/eventtypes"
+ 	"github.com/inveniamcapital/InveniamIndicia/pkg/metrics"
+ )
+@@ -50,7 +53,15 @@ type ingestTenantState struct {
+ 
+ func NewIngestSync(baseURL string, reg *eventtypes.EventTypeRegistry, window time.Duration, client *http.Client) *IngestSync {
+ 	if client == nil {
+-		client = &http.Client{Timeout: ingestProbeTimeout}
++		// Same rule as coreclient: a client span per call, and trace context
++		// only. Baggage is not forwarded to core.
++		client = &http.Client{
++			Timeout: ingestProbeTimeout,
++			Transport: otelhttp.NewTransport(
++				http.DefaultTransport,
++				otelhttp.WithPropagators(propagation.TraceContext{}),
++			),
++		}
+ 	}
+ 	s := &IngestSync{
+ 		baseURL:  strings.TrimSuffix(baseURL, "/"),
+diff --git a/internal/registrysync/ingest_test.go b/internal/registrysync/ingest_test.go
+index 92ce5f4..6b5f4fc 100644
+--- a/internal/registrysync/ingest_test.go
++++ b/internal/registrysync/ingest_test.go
+@@ -6,9 +6,15 @@ import (
+ 	"errors"
+ 	"net/http"
+ 	"net/http/httptest"
++	"strings"
+ 	"testing"
+ 	"time"
+ 
++	"go.opentelemetry.io/otel"
++	"go.opentelemetry.io/otel/baggage"
++	"go.opentelemetry.io/otel/propagation"
++	sdktrace "go.opentelemetry.io/otel/sdk/trace"
++
+ 	"github.com/inveniamcapital/InveniamIndicia/pkg/eventtypes"
+ )
+ 
+@@ -269,3 +275,59 @@ func TestIngestSync_ReadyVsEnsureFreshNoDeadlock(t *testing.T) {
+ 		t.Fatal("EnsureFresh/Ready did not complete")
+ 	}
+ }
++
++func TestGetEventTypes_PropagatesTraceContextOnly(t *testing.T) {
++	prevProp := otel.GetTextMapPropagator()
++	prevTP := otel.GetTracerProvider()
++	t.Cleanup(func() {
++		otel.SetTextMapPropagator(prevProp)
++		otel.SetTracerProvider(prevTP)
++	})
++	tp := sdktrace.NewTracerProvider(sdktrace.WithSampler(sdktrace.AlwaysSample()))
++	otel.SetTracerProvider(tp)
++	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
++		propagation.TraceContext{},
++		propagation.Baggage{},
++	))
++
++	ctx, span := tp.Tracer("test").Start(context.Background(), "parent")
++	defer span.End()
++	member, err := baggage.NewMember("k", "baggage-marker")
++	if err != nil {
++		t.Fatal(err)
++	}
++	bag, err := baggage.New(member)
++	if err != nil {
++		t.Fatal(err)
++	}
++	ctx = baggage.ContextWithBaggage(ctx, bag)
++
++	reg, err := eventtypes.BuildEventTypeRegistry()
++	if err != nil {
++		t.Fatal(err)
++	}
++	var headers http.Header
++	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		headers = r.Header.Clone()
++		w.Header().Set("Content-Type", "application/json")
++		if err := json.NewEncoder(w).Encode(map[string]any{
++			"event_types":   []any{},
++			"global_digest": reg.CompiledGlobalDigest(),
++		}); err != nil {
++			t.Error(err)
++		}
++	}))
++	defer srv.Close()
++
++	sync := NewIngestSync(srv.URL, reg, time.Hour, nil)
++	if _, _, _, _, err := sync.getEventTypes(ctx, "Bearer tok", ""); err != nil {
++		t.Fatalf("getEventTypes: %v", err)
++	}
++	traceparent := headers.Get("traceparent")
++	if !strings.Contains(traceparent, span.SpanContext().TraceID().String()) {
++		t.Fatalf("traceparent = %q, want trace id %s", traceparent, span.SpanContext().TraceID())
++	}
++	if headers.Get("baggage") != "" {
++		t.Fatalf("baggage = %q, want none forwarded to core", headers.Get("baggage"))
++	}
++}
+diff --git a/internal/sidecar/config.go b/internal/sidecar/config.go
+index d64b5c0..3c85a2a 100644
+--- a/internal/sidecar/config.go
++++ b/internal/sidecar/config.go
+@@ -62,6 +62,10 @@ var FusionAuthEnv = config.FusionAuthEnvNames{
+ // Config is the sidecar's runtime configuration. FusionAuth settings are
+ // deliberately NOT here; see FusionAuthEnv.
+ type Config struct {
++	// Environment is INDICIA_ENVIRONMENT, default development. Tracing
++	// validation uses it for the same cleartext refusal as the core.
++	Environment            string
++	Tracing                config.TracingConfig
+ 	RecordStoreDSN         string
+ 	CoreURL                string
+ 	ListenAddr             string
+@@ -124,9 +128,34 @@ func LoadConfig() (Config, error) {
+ 	if err := applySidecarEnvOverrides(&cfg); err != nil {
+ 		return Config{}, err
+ 	}
++	if err := applyTracingConfig(&cfg); err != nil {
++		return Config{}, err
++	}
+ 	return cfg, nil
+ }
+ 
++// applyTracingConfig loads the same tracing variables the core reads and
++// applies the same cleartext and endpoint checks.
++func applyTracingConfig(cfg *Config) error {
++	environment := os.Getenv("INDICIA_ENVIRONMENT")
++	if environment == "" {
++		environment = "development"
++	}
++	if err := config.ValidateEnvironment(environment); err != nil {
++		return err
++	}
++	tracingCfg, err := config.LoadTracingConfig()
++	if err != nil {
++		return err
++	}
++	if err := tracingCfg.Validate(environment); err != nil {
++		return err
++	}
++	cfg.Environment = environment
++	cfg.Tracing = tracingCfg
++	return nil
++}
++
+ // recordStoreDSN builds the record store's Postgres URL from DB_*. Host, user
+ // and database are required; the port defaults to 5432 and sslmode is left to
+ // the driver when DB_SSL_MODE is unset.
+diff --git a/internal/sidecar/config_test.go b/internal/sidecar/config_test.go
+index cce9e8d..3d6b015 100644
+--- a/internal/sidecar/config_test.go
++++ b/internal/sidecar/config_test.go
+@@ -34,6 +34,11 @@ var sidecarEnvVars = []string{
+ 	"INDICIA_SIDECAR_QUARANTINE_MAX_ENTRIES",
+ 	"INDICIA_SIDECAR_QUARANTINE_MAX_BYTES",
+ 	"INDICIA_SIDECAR_SWAGGER_ENABLED",
++	"INDICIA_ENVIRONMENT",
++	"INDICIA_TRACING_ENABLED",
++	"INDICIA_OTEL_ENDPOINT",
++	"INDICIA_OTEL_INSECURE",
++	"INDICIA_TRACING_SAMPLE_RATE",
+ }
+ 
+ func clearSidecarEnv(t *testing.T) {
+@@ -114,6 +119,15 @@ func TestLoadConfig_AppliesDefaults(t *testing.T) {
+ 	if cfg.SwaggerEnabled {
+ 		t.Fatal("SwaggerEnabled = true, want false when INDICIA_SIDECAR_SWAGGER_ENABLED is unset")
+ 	}
++	if cfg.Environment != "development" {
++		t.Fatalf("Environment = %q, want development", cfg.Environment)
++	}
++	if cfg.Tracing.Enabled {
++		t.Fatal("Tracing.Enabled = true, want false when INDICIA_TRACING_ENABLED is unset")
++	}
++	if cfg.Tracing.Insecure {
++		t.Fatal("Tracing.Insecure = true, want false when INDICIA_OTEL_INSECURE is unset")
++	}
+ }
+ 
+ func TestLoadConfig_BuildsConnectionSettings(t *testing.T) {
+@@ -237,3 +251,85 @@ func TestLoadConfig_SwaggerEnabled(t *testing.T) {
+ 		t.Fatal("SwaggerEnabled = false, want true")
+ 	}
+ }
++
++func TestLoadConfig_Tracing(t *testing.T) {
++	tests := []struct {
++		name    string
++		env     map[string]string
++		wantErr string
++		want    func(t *testing.T, cfg sidecar.Config)
++	}{
++		{
++			name:    "unparseable insecure flag",
++			env:     map[string]string{"INDICIA_OTEL_INSECURE": "yes"},
++			wantErr: "INDICIA_OTEL_INSECURE",
++		},
++		{
++			name: "url endpoint while tracing enabled",
++			env: map[string]string{
++				"INDICIA_TRACING_ENABLED": "true",
++				"INDICIA_OTEL_ENDPOINT":   "https://collector:4318",
++			},
++			wantErr: "INDICIA_OTEL_ENDPOINT",
++		},
++		{
++			name: "production refuses cleartext even when tracing is disabled",
++			env: map[string]string{
++				"INDICIA_ENVIRONMENT":   "production",
++				"INDICIA_OTEL_INSECURE": "true",
++			},
++			wantErr: "INDICIA_OTEL_INSECURE",
++		},
++		{
++			name:    "unknown environment name",
++			env:     map[string]string{"INDICIA_ENVIRONMENT": "prod"},
++			wantErr: `invalid environment "prod"`,
++		},
++		{
++			name: "host port endpoint while tracing enabled",
++			env: map[string]string{
++				"INDICIA_TRACING_ENABLED": "true",
++				"INDICIA_OTEL_ENDPOINT":   "collector.example:4318",
++				"INDICIA_ENVIRONMENT":     "staging",
++			},
++			want: func(t *testing.T, cfg sidecar.Config) {
++				t.Helper()
++				if cfg.Environment != "staging" {
++					t.Fatalf("Environment = %q, want staging", cfg.Environment)
++				}
++				if !cfg.Tracing.Enabled {
++					t.Fatal("Tracing.Enabled = false, want true")
++				}
++				if cfg.Tracing.OTLPEndpoint != "collector.example:4318" {
++					t.Fatalf("OTLPEndpoint = %q", cfg.Tracing.OTLPEndpoint)
++				}
++				if cfg.Tracing.Insecure {
++					t.Fatal("Tracing.Insecure = true, want false")
++				}
++			},
++		},
++	}
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			clearSidecarEnv(t)
++			setRequiredEnv(t)
++			for k, v := range tt.env {
++				t.Setenv(k, v)
++			}
++			cfg, err := sidecar.LoadConfig()
++			if tt.wantErr != "" {
++				if err == nil {
++					t.Fatal("expected an error, got nil")
++				}
++				if !strings.Contains(err.Error(), tt.wantErr) {
++					t.Fatalf("error %q does not contain %q", err, tt.wantErr)
++				}
++				return
++			}
++			if err != nil {
++				t.Fatalf("LoadConfig: %v", err)
++			}
++			tt.want(t, cfg)
++		})
++	}
++}
+diff --git a/internal/sidecar/coreclient/client.go b/internal/sidecar/coreclient/client.go
+index 895d57b..fadf2ce 100644
+--- a/internal/sidecar/coreclient/client.go
++++ b/internal/sidecar/coreclient/client.go
+@@ -14,6 +14,9 @@ import (
+ 	"strings"
+ 	"time"
+ 
++	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
++	"go.opentelemetry.io/otel/propagation"
++
+ 	"github.com/inveniamcapital/InveniamIndicia/pkg/canonical"
+ )
+ 
+@@ -179,11 +182,20 @@ type Client struct {
+ // rather than the hash-only door.
+ func New(baseURL string, httpClient *http.Client) *Client {
+ 	if httpClient == nil {
+-		httpClient = &http.Client{Timeout: defaultTimeout}
++		httpClient = &http.Client{Timeout: defaultTimeout, Transport: newCoreTransport()}
+ 	}
+ 	return &Client{baseURL: strings.TrimRight(baseURL, "/"), http: httpClient}
+ }
+ 
++// newCoreTransport records a client span for the call to core and forwards
++// trace context only. W3C baggage stays behind: a producer-supplied baggage
++// header can carry anything, and the core is the process that never holds
++// content. With tracing disabled the global tracer is a no-op, so the
++// transport adds no header and no span.
++func newCoreTransport() http.RoundTripper {
++	return otelhttp.NewTransport(http.DefaultTransport, otelhttp.WithPropagators(propagation.TraceContext{}))
++}
++
+ // PostEnvelope forwards one envelope and returns the core's stored-event
+ // response. The caller's Idempotency-Key is deliberately NOT forwarded: the
+ // core keys idempotency on (prefix, tenant, key) without hashing the body
+diff --git a/internal/sidecar/coreclient/client_test.go b/internal/sidecar/coreclient/client_test.go
+index eb913c8..9578936 100644
+--- a/internal/sidecar/coreclient/client_test.go
++++ b/internal/sidecar/coreclient/client_test.go
+@@ -12,6 +12,12 @@ import (
+ 	"strings"
+ 	"testing"
+ 
++	"go.opentelemetry.io/otel"
++	"go.opentelemetry.io/otel/baggage"
++	"go.opentelemetry.io/otel/propagation"
++	sdktrace "go.opentelemetry.io/otel/sdk/trace"
++	"go.opentelemetry.io/otel/trace/noop"
++
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/core"
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/sidecar/coreclient"
+ 	"github.com/inveniamcapital/InveniamIndicia/pkg/canonical"
+@@ -493,3 +499,108 @@ func TestNew_NilHTTPClientGetsATimeout(t *testing.T) {
+ 		t.Fatalf("transport failure must not be typed as a core rejection: %v", err)
+ 	}
+ }
++
++func TestPostEnvelope_PropagatesParentTrace(t *testing.T) {
++	restoreTracing(t)
++	tp := sdktrace.NewTracerProvider(sdktrace.WithSampler(sdktrace.AlwaysSample()))
++	otel.SetTracerProvider(tp)
++	// The global propagator carries baggage. The core client must not: a
++	// producer can put anything in that header, and core never holds content.
++	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
++		propagation.TraceContext{},
++		propagation.Baggage{},
++	))
++
++	ctx, span := tp.Tracer("test").Start(context.Background(), "parent")
++	defer span.End()
++	member, err := baggage.NewMember("k", "baggage-marker")
++	if err != nil {
++		t.Fatal(err)
++	}
++	bag, err := baggage.New(member)
++	if err != nil {
++		t.Fatal(err)
++	}
++	ctx = baggage.ContextWithBaggage(ctx, bag)
++
++	env := sampleEnvelope()
++	env.Tier1 = map[string]any{"agent_type": "analyzer"}
++	env.Tier2 = map[string]string{"user_id": "pseudo-abc"}
++	env.Tier3 = map[string]string{"prompt": "0xdeadbeef"}
++
++	var headers http.Header
++	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		headers = r.Header.Clone()
++		w.WriteHeader(http.StatusAccepted)
++		if _, err := w.Write([]byte(`{"event_id":"evt-1"}`)); err != nil {
++			t.Errorf("write response: %v", err)
++		}
++	}))
++	defer srv.Close()
++
++	// nil client is the production path: the instrumented transport.
++	c := coreclient.New(srv.URL, nil)
++	if _, err := c.PostEnvelope(ctx, "Bearer tok", env); err != nil {
++		t.Fatalf("PostEnvelope: %v", err)
++	}
++
++	traceparent := headers.Get("traceparent")
++	traceID := span.SpanContext().TraceID().String()
++	if !strings.Contains(traceparent, traceID) {
++		t.Fatalf("traceparent = %q, want it to carry trace id %s", traceparent, traceID)
++	}
++	if headers.Get("baggage") != "" {
++		t.Fatalf("baggage = %q, want none forwarded to core", headers.Get("baggage"))
++	}
++	if headers.Get("Authorization") != "Bearer tok" {
++		t.Fatalf("Authorization = %q", headers.Get("Authorization"))
++	}
++	if headers.Get("Content-Type") != "application/json" {
++		t.Fatalf("Content-Type = %q", headers.Get("Content-Type"))
++	}
++	if headers.Get("Idempotency-Key") != "" {
++		t.Fatalf("Idempotency-Key = %q, want empty", headers.Get("Idempotency-Key"))
++	}
++	for key, values := range headers {
++		for _, value := range values {
++			for _, secret := range []string{"analyzer", "pseudo-abc", "0xdeadbeef", "baggage-marker"} {
++				if strings.Contains(value, secret) {
++					t.Fatalf("header %s contains %q", key, secret)
++				}
++			}
++		}
++	}
++}
++
++func TestPostEnvelope_TracingOffAddsNoTraceparent(t *testing.T) {
++	restoreTracing(t)
++	otel.SetTracerProvider(noop.NewTracerProvider())
++
++	var traceparent string
++	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		traceparent = r.Header.Get("traceparent")
++		w.WriteHeader(http.StatusAccepted)
++		if _, err := w.Write([]byte(`{"event_id":"evt-1"}`)); err != nil {
++			t.Errorf("write response: %v", err)
++		}
++	}))
++	defer srv.Close()
++
++	c := coreclient.New(srv.URL, nil)
++	if _, err := c.PostEnvelope(context.Background(), "Bearer tok", sampleEnvelope()); err != nil {
++		t.Fatalf("PostEnvelope: %v", err)
++	}
++	if traceparent != "" {
++		t.Fatalf("traceparent = %q, want none when tracing is off", traceparent)
++	}
++}
++
++func restoreTracing(t *testing.T) {
++	t.Helper()
++	prevProp := otel.GetTextMapPropagator()
++	prevTP := otel.GetTracerProvider()
++	t.Cleanup(func() {
++		otel.SetTextMapPropagator(prevProp)
++		otel.SetTracerProvider(prevTP)
++	})
++}
+diff --git a/internal/sidecar/http/handler_test.go b/internal/sidecar/http/handler_test.go
+index 73bd876..588daf2 100644
+--- a/internal/sidecar/http/handler_test.go
++++ b/internal/sidecar/http/handler_test.go
+@@ -15,6 +15,13 @@ import (
+ 
+ 	"github.com/gin-gonic/gin"
+ 	"github.com/rs/zerolog"
++	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
++	"go.opentelemetry.io/otel"
++	"go.opentelemetry.io/otel/baggage"
++	"go.opentelemetry.io/otel/propagation"
++	sdktrace "go.opentelemetry.io/otel/sdk/trace"
++	"go.opentelemetry.io/otel/sdk/trace/tracetest"
++	"go.opentelemetry.io/otel/trace"
+ 
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/api/middleware"
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/auth"
+@@ -1095,3 +1102,133 @@ func TestCreateEvent_IdempotencyKey503ThenRetryDoesNotDoubleSeal(t *testing.T) {
+ 		t.Fatalf("cached replay must not reseal, rows=%d", len(st.rows))
+ 	}
+ }
++
++func TestCreateEvent_CoreCallsContinueTheSidecarTrace(t *testing.T) {
++	gin.SetMode(gin.TestMode)
++	prevProp := otel.GetTextMapPropagator()
++	prevTP := otel.GetTracerProvider()
++	rec := tracetest.NewSpanRecorder()
++	tp := sdktrace.NewTracerProvider(
++		sdktrace.WithSampler(sdktrace.AlwaysSample()),
++		sdktrace.WithSpanProcessor(rec),
++	)
++	otel.SetTracerProvider(tp)
++	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
++		propagation.TraceContext{},
++		propagation.Baggage{},
++	))
++	t.Cleanup(func() {
++		otel.SetTextMapPropagator(prevProp)
++		otel.SetTracerProvider(prevTP)
++	})
++
++	const (
++		contentMarker = "plaintext-marker-9f3a"
++		baggageMarker = "baggage-marker-9f3a"
++	)
++	registry := testRegistry(t)
++	var calls []http.Header
++	core := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		calls = append(calls, r.Header.Clone())
++		switch {
++		case r.Method == http.MethodGet && r.URL.Path == "/event-types":
++			writeHTTPBody(t, w, listBodyWithTenants(t, registry.CompiledGlobalDigest()))
++		case r.Method == http.MethodPost && r.URL.Path == "/events":
++			w.WriteHeader(http.StatusAccepted)
++			writeHTTPBody(t, w, []byte(`{"event_id":"evt-1"}`))
++		default:
++			w.WriteHeader(http.StatusNotFound)
++		}
++	}))
++	t.Cleanup(core.Close)
++
++	st := newRecordingStore()
++	kv := keyvault.New(kms.NewFake())
++	h := sidecarhttp.NewHandler(sidecarhttp.Deps{
++		Store:          st,
++		Keyvault:       kv,
++		Pseudonymizer:  pseudonym.New(kv, st),
++		Classifier:     testClassifier(t),
++		Core:           coreclient.New(core.URL, nil),
++		Logger:         zerolog.Nop(),
++		MaxBodyBytes:   1 << 20,
++		EventTypes:     registry,
++		Forget:         nopForget{},
++		TenantRegistry: registrysync.NewIngestSync(core.URL, registry, time.Hour, nil),
++		RetryAfter:     2 * time.Second,
++	})
++	r := gin.New()
++	r.Use(otelgin.Middleware("indicia-sidecar"))
++	r.Use(func(c *gin.Context) {
++		member, err := baggage.NewMember("k", baggageMarker)
++		if err != nil {
++			t.Error(err)
++			return
++		}
++		bag, err := baggage.New(member)
++		if err != nil {
++			t.Error(err)
++			return
++		}
++		c.Request = c.Request.WithContext(baggage.ContextWithBaggage(c.Request.Context(), bag))
++		c.Next()
++	})
++	r.POST("/v1/events", func(c *gin.Context) {
++		c.Set("company_id", "acme")
++		c.Set("bearer_token", "Bearer tok")
++		h.CreateEvent(c)
++	})
++
++	body := bytes.Replace(validEventBody(), []byte(`"hello"`), []byte(`"`+contentMarker+`"`), 1)
++	w := httptest.NewRecorder()
++	req := httptest.NewRequest(http.MethodPost, "/v1/events", bytes.NewReader(body))
++	req.Header.Set("baggage", "k="+baggageMarker)
++	r.ServeHTTP(w, req)
++	if w.Code != http.StatusAccepted {
++		t.Fatalf("status = %d, body=%s", w.Code, w.Body.String())
++	}
++	if len(calls) != 2 {
++		t.Fatalf("core calls = %d, want GET /event-types and POST /events", len(calls))
++	}
++
++	var server trace.SpanContext
++	clients := map[string]trace.SpanContext{}
++	for _, sp := range rec.Ended() {
++		for _, kv := range sp.Attributes() {
++			value := kv.Value.String()
++			if strings.Contains(value, contentMarker) || strings.Contains(value, baggageMarker) {
++				t.Fatalf("span %q attribute %s contains %q", sp.Name(), kv.Key, value)
++			}
++		}
++		kind := sp.SpanKind()
++		if kind == trace.SpanKindServer {
++			server = sp.SpanContext()
++		}
++		if kind == trace.SpanKindClient {
++			clients[sp.SpanContext().SpanID().String()] = sp.Parent()
++		}
++	}
++	if !server.IsValid() {
++		t.Fatal("no sidecar server span recorded")
++	}
++	for i, hdr := range calls {
++		traceparent := hdr.Get("traceparent")
++		parts := strings.Split(traceparent, "-")
++		if len(parts) != 4 {
++			t.Fatalf("call %d traceparent = %q", i, traceparent)
++		}
++		if parts[1] != server.TraceID().String() {
++			t.Fatalf("call %d trace id = %s, want %s", i, parts[1], server.TraceID())
++		}
++		parent, ok := clients[parts[2]]
++		if !ok {
++			t.Fatalf("call %d traceparent span %s is not a recorded client span", i, parts[2])
++		}
++		if parent.SpanID() != server.SpanID() {
++			t.Fatalf("call %d client span parent = %s, want server span %s", i, parent.SpanID(), server.SpanID())
++		}
++		if hdr.Get("baggage") != "" {
++			t.Fatalf("call %d baggage = %q, want none", i, hdr.Get("baggage"))
++		}
++	}
++}
+diff --git a/internal/sidecar/router.go b/internal/sidecar/router.go
+index 3d11a48..8242e9e 100644
+--- a/internal/sidecar/router.go
++++ b/internal/sidecar/router.go
+@@ -7,6 +7,7 @@ import (
+ 	"github.com/prometheus/client_golang/prometheus/promhttp"
+ 	"github.com/redis/go-redis/v9"
+ 	"github.com/rs/zerolog"
++	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+ 
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/api/middleware"
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/api/swaggerui"
+@@ -43,6 +44,10 @@ type RouterDeps struct {
+ 	// SwaggerEnabled mounts GET /docs. Off unless the operator opts in:
+ 	// the UI lists every route without authentication.
+ 	SwaggerEnabled bool
++
++	// TracingEnabled mounts OpenTelemetry middleware. Off unless
++	// INDICIA_TRACING_ENABLED is set, matching the core.
++	TracingEnabled bool
+ }
+ 
+ // NewFusionAuthAuth is the production auth middleware for the door.
+@@ -71,6 +76,9 @@ func NewFusionAuthAuth(validator *auth.FusionAuthJWTValidator) gin.HandlerFunc {
+ func NewRouter(deps RouterDeps) *gin.Engine {
+ 	router := gin.New()
+ 	router.Use(gin.Recovery())
++	if deps.TracingEnabled {
++		router.Use(otelgin.Middleware("indicia-sidecar", otelgin.WithFilter(traceRequests)))
++	}
+ 
+ 	router.GET("/health", func(c *gin.Context) {
+ 		c.JSON(http.StatusOK, gin.H{"status": "healthy", "service": "sidecar"})
+@@ -162,6 +170,19 @@ func NewRouter(deps RouterDeps) *gin.Engine {
+ 	return router
+ }
+ 
++// traceRequests drops the paths Kubernetes probes and the metrics scrape hit.
++// Each of those fires far more often than real traffic, and a span for every
++// one of them buries the requests worth looking at. Returning false tells
++// otelgin to skip the span.
++func traceRequests(r *http.Request) bool {
++	switch r.URL.Path {
++	case "/health", "/ready", "/health/metrics":
++		return false
++	default:
++		return true
++	}
++}
++
+ // requireTenant bridges validated claims into the plain context keys the
+ // handler reads, and refuses a token carrying no company_id. The core treats an
+ // empty company_id as a global-admin signal gated on role (finding F1); on this
+diff --git a/internal/sidecar/router_test.go b/internal/sidecar/router_test.go
+index d166574..ee350fa 100644
+--- a/internal/sidecar/router_test.go
++++ b/internal/sidecar/router_test.go
+@@ -8,6 +8,9 @@ import (
+ 
+ 	"github.com/gin-gonic/gin"
+ 	"github.com/rs/zerolog"
++	"go.opentelemetry.io/otel"
++	sdktrace "go.opentelemetry.io/otel/sdk/trace"
++	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+ 
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/api/middleware"
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/auth"
+@@ -513,3 +516,30 @@ func TestEveryRegisteredRouteIsGatedOrPublic(t *testing.T) {
+ 		}
+ 	}
+ }
++
++func TestRouter_TracingSkipsProbes(t *testing.T) {
++	gin.SetMode(gin.TestMode)
++	prev := otel.GetTracerProvider()
++	rec := tracetest.NewSpanRecorder()
++	otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(rec)))
++	t.Cleanup(func() { otel.SetTracerProvider(prev) })
++
++	r := sidecar.NewRouter(sidecar.RouterDeps{
++		Logger:         zerolog.Nop(),
++		Handler:        sidecarhttp.NewHandler(sidecarhttp.Deps{Logger: zerolog.Nop(), MaxBodyBytes: 1 << 20}),
++		Auth:           stubAuth("acme", "writer"),
++		TracingEnabled: true,
++	})
++
++	for _, path := range []string{"/health", "/ready", "/health/metrics"} {
++		r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, path, nil))
++	}
++	if n := len(rec.Ended()); n != 0 {
++		t.Fatalf("probe paths recorded %d spans, want 0", n)
++	}
++
++	r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/v1/events", nil))
++	if n := len(rec.Ended()); n != 1 {
++		t.Fatalf("recorded %d spans for /v1/events, want 1", n)
++	}
++}

@@ -1,0 +1,124 @@
+diff --git a/docs/api/API_SPECIFICATION.md b/docs/api/API_SPECIFICATION.md
+index b2455e8..909d33a 100644
+--- a/docs/api/API_SPECIFICATION.md
++++ b/docs/api/API_SPECIFICATION.md
+@@ -4,7 +4,7 @@
+ 
+ **Version:** 3.0  
+ **Status:** Complete  
+-**Last Updated:** October 5, 2026
++**Last Updated:** October 22, 2026
+ 
+ > **Content-free hash-only core (Slice 1, Plan B).** `POST /events` is the sole ingestion door and accepts a content-free `canonical.HashOnlyEnvelope` — locators, HMAC pseudonyms, and precomputed leaf hashes only. Raw content never reaches the core; producers (a future content sidecar, or a BYO client) compute the hashes before submitting. See [ARCHITECTURE.md](ARCHITECTURE.md) and [SEPARATION_OF_CONCERNS_CANONICAL_HASHING_SPEC.md](../plans/SEPARATION_OF_CONCERNS_CANONICAL_HASHING_SPEC.md) for the full contract.
+ 
+@@ -412,7 +412,9 @@ Batch details and the ordered event list. **This is not a tamper check.**
+ 
+ The only endpoint that consults the chain is [`GET /events/{id}/verify`](#get-eventsidverify) (`chain_anchor`). To be sure the answer is a live read, pass `?fresh=true` and assert `chain_anchor.source == "chain"`.
+ 
+-**Errors:** 400, 401, 403, 404, 500, 503
++*(changed 2026-10-22)* A failed read of the batch, or of its event list, is HTTP 500 `{"error":"retrieval_error","message":"Failed to retrieve batch"}`. The handler does not return 200 without `event_ids`.
++
++**Errors:** 400, 401, 403, 404, 500 (`retrieval_error`), 503
+ 
+ ---
+ 
+@@ -445,7 +447,9 @@ Stored index for one event. **This is not a tamper check.**
+ 
+ The only endpoint that consults the chain is [`GET /events/{id}/verify`](#get-eventsidverify) (`chain_anchor`). To be sure the answer is a live read, pass `?fresh=true` and assert `chain_anchor.source == "chain"`.
+ 
+-**Errors:** 400, 401, 403, 404, 500, 503
++*(changed 2026-10-22)* A failed read of the event, or of the batch row when `batch_id` is set, is HTTP 500 `{"error":"retrieval_error","message":"Failed to retrieve anchor status"}`. The handler does not return 200 with the batch fields omitted.
++
++**Errors:** 400, 401, 403, 404, 500 (`retrieval_error`), 503
+ 
+ ---
+ 
+diff --git a/internal/api/docs/docs.go b/internal/api/docs/docs.go
+index cf75ae9..6958649 100644
+--- a/internal/api/docs/docs.go
++++ b/internal/api/docs/docs.go
+@@ -1317,7 +1317,7 @@ const docTemplate = `{
+                         }
+                     },
+                     "500": {
+-                        "description": "Internal Server Error",
++                        "description": "retrieval_error when the batch or its event list cannot be read",
+                         "schema": {
+                             "$ref": "#/definitions/handlers.ErrorResponse"
+                         }
+@@ -1823,7 +1823,7 @@ const docTemplate = `{
+                         }
+                     },
+                     "500": {
+-                        "description": "Internal Server Error",
++                        "description": "retrieval_error when the event or its batch row cannot be read",
+                         "schema": {
+                             "$ref": "#/definitions/handlers.ErrorResponse"
+                         }
+diff --git a/internal/api/docs/swagger.json b/internal/api/docs/swagger.json
+index da773b0..5ab5735 100644
+--- a/internal/api/docs/swagger.json
++++ b/internal/api/docs/swagger.json
+@@ -1310,7 +1310,7 @@
+                         }
+                     },
+                     "500": {
+-                        "description": "Internal Server Error",
++                        "description": "retrieval_error when the batch or its event list cannot be read",
+                         "schema": {
+                             "$ref": "#/definitions/handlers.ErrorResponse"
+                         }
+@@ -1816,7 +1816,7 @@
+                         }
+                     },
+                     "500": {
+-                        "description": "Internal Server Error",
++                        "description": "retrieval_error when the event or its batch row cannot be read",
+                         "schema": {
+                             "$ref": "#/definitions/handlers.ErrorResponse"
+                         }
+diff --git a/internal/api/docs/swagger.yaml b/internal/api/docs/swagger.yaml
+index 6bf9555..63aefad 100644
+--- a/internal/api/docs/swagger.yaml
++++ b/internal/api/docs/swagger.yaml
+@@ -1968,7 +1968,8 @@ paths:
+           schema:
+             $ref: '#/definitions/handlers.ErrorResponse'
+         "500":
+-          description: Internal Server Error
++          description: retrieval_error when the batch or its event list cannot be
++            read
+           schema:
+             $ref: '#/definitions/handlers.ErrorResponse'
+         "503":
+@@ -2316,7 +2317,7 @@ paths:
+           schema:
+             $ref: '#/definitions/handlers.ErrorResponse'
+         "500":
+-          description: Internal Server Error
++          description: retrieval_error when the event or its batch row cannot be read
+           schema:
+             $ref: '#/definitions/handlers.ErrorResponse'
+         "503":
+diff --git a/internal/api/handlers/events.go b/internal/api/handlers/events.go
+index 1d43d00..512a80e 100644
+--- a/internal/api/handlers/events.go
++++ b/internal/api/handlers/events.go
+@@ -315,7 +315,7 @@ func (h *EventsHandler) Get(c *gin.Context) {
+ //	@Failure		401	{object}	ErrorResponse
+ //	@Failure		403	{object}	ErrorResponse
+ //	@Failure		404	{object}	ErrorResponse
+-//	@Failure		500	{object}	ErrorResponse
++//	@Failure		500	{object}	ErrorResponse	"retrieval_error when the event or its batch row cannot be read"
+ //	@Failure		503	{object}	ErrorResponse
+ //	@Router			/events/{id}/anchor/status [get]
+ func (h *EventsHandler) GetAnchorStatus(c *gin.Context) {
+@@ -746,7 +746,7 @@ type BatchResponse struct {
+ //	@Failure		401	{object}	ErrorResponse
+ //	@Failure		403	{object}	ErrorResponse
+ //	@Failure		404	{object}	ErrorResponse
+-//	@Failure		500	{object}	ErrorResponse
++//	@Failure		500	{object}	ErrorResponse	"retrieval_error when the batch or its event list cannot be read"
+ //	@Failure		503	{object}	ErrorResponse
+ //	@Router			/batches/{id} [get]
+ func (h *EventsHandler) GetBatch(c *gin.Context) {

@@ -1,0 +1,11 @@
+{
+  "cssTheme": "Minimal",
+  "translucency": false,
+  "baseFontSize": 20,
+  "enabledCssSnippets": [
+    "headings"
+  ],
+  "accentColor": "",
+  "theme": "system",
+  "showRibbon": true
+}

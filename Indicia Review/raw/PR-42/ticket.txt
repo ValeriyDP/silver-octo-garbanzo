@@ -1,0 +1,9 @@
+INV-43523
+Parent: INV-42087
+
+Integrity classification used errors.Is against immudb sentinels. A server-returned corruption error is a raw gRPC status, and immudb compares that to a plain sentinel by message text. A wrap or an upstream reword was classified as result=error, so the integrity latch never tripped and /ready stayed healthy.
+
+Claims:
+- The auditor treats codes.Unknown and codes.Internal as an integrity failure when any ": "-delimited segment of the status message equals the pinned text of store.ErrCorruptedData or store.ErrCorruptedTxData.
+- Client-local sentinels still match by identity. Transport, session, and not-found errors still do not latch.
+- TestServerIntegritySentinelText fails if the pinned SDK rewords either sentence.

@@ -1,0 +1,18 @@
+.markdown-preview-view h1, .cm-header-1 { color: #e0a458; }
+.markdown-preview-view h2, .cm-header-2 { color: #d4935f; }
+.markdown-preview-view h3, .cm-header-3 { color: #c68a5c; }
+.markdown-preview-view h4,
+.markdown-preview-view h5,
+.markdown-preview-view h6,
+.cm-header-4, .cm-header-5, .cm-header-6 { color: #b8815e; }
+
+body {
+  --code-normal: #7fb08a;
+  --code-background: rgba(127, 176, 138, 0.12);
+}
+
+.markdown-preview-view code:not(pre code),
+.cm-inline-code {
+  color: #7fb08a !important;
+  background-color: rgba(127, 176, 138, 0.12) !important;
+}

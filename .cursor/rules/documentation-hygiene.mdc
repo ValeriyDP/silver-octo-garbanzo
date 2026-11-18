@@ -1,0 +1,15 @@
+---
+description: Index, log, and qmd-sync after docs-vault wiki edits
+globs: docs-vault/**/*.md
+alwaysApply: true
+---
+
+# Hygiene
+
+After adding or editing a wiki page in an investigation folder:
+
+1. Add the page to that folder’s `wiki/index.md` if it is new.
+2. Append a line to `wiki/log.md`.
+3. From that folder: `../_resources/scripts/qmd-sync.sh "$(pwd)"`.
+
+Never modify `raw/`. Do not put secrets, passwords, or Vault values in pages. Paths and `vault://…` references are allowed.

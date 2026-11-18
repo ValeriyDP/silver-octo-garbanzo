@@ -1,0 +1,468 @@
+diff --git a/docs/api/API_SPECIFICATION.md b/docs/api/API_SPECIFICATION.md
+index bec7d92..01d7460 100644
+--- a/docs/api/API_SPECIFICATION.md
++++ b/docs/api/API_SPECIFICATION.md
+@@ -397,8 +397,11 @@ The sole ingestion door. Stores a single content-free hash-only event envelope (
+ 
+ **Query:** `company_id` or `external_id` (required), `status`, `start_time`, `end_time`, `limit` (default 100, max 1000), `offset`.
+ 
+-**Response (200):** `{"batches": [...], "total", "limit", "offset"}`  
+-**Errors:** 400, 401, 403, 503
++**Response (200):** `{"batches": [...], "total", "limit", "offset"}`
++
++*(changed 2026-10-29)* A store failure while resolving `external_id` is HTTP 500 `{"error":"internal_error","message":"Failed to resolve external_id"}`. The driver text is logged and is absent from the body. An unknown `external_id` stays HTTP 400 `{"error":"invalid_request","message":"failed to resolve external_id: company not found"}`. `cannot provide both company_id and external_id` stays HTTP 400 `{"error":"invalid_request","message":"cannot provide both company_id and external_id"}`. A failed list query is HTTP 500 `{"error":"query_error","message":"Failed to query batches"}`.
++
++**Errors:** 400, 401, 403, 500 (`internal_error`, `query_error`), 503
+ 
+ ---
+ 
+@@ -457,8 +460,11 @@ The only endpoint that consults the chain is [`GET /events/{id}/verify`](#get-ev
+ 
+ **Query:** `company_id` or `external_id` (required unless `global_admin`), `user_id`, `event_type`, `agent_id`, `geography`, `status` (pending/anchored/confirmed/failed), `start_time`, `end_time`, `limit`, `offset`.
+ 
+-**Response (200):** `{"events": [...], "total", "limit", "offset"}`  
+-**Errors:** 400, 401, 500
++**Response (200):** `{"events": [...], "total", "limit", "offset"}`
++
++*(changed 2026-10-29)* A store failure while resolving `external_id` is HTTP 500 `{"error":"internal_error","message":"Failed to resolve external_id"}`. The driver text is logged and is absent from the body. An unknown `external_id` stays HTTP 400 `{"error":"invalid_request","message":"failed to resolve external_id: company not found"}`. `cannot provide both company_id and external_id` stays HTTP 400 `{"error":"invalid_request","message":"cannot provide both company_id and external_id"}`. A failed list query is HTTP 500 `{"error":"query_error","message":"Failed to query events"}`.
++
++**Errors:** 400, 401, 403, 500 (`internal_error`, `query_error`), 503
+ 
+ ---
+ 
+@@ -871,11 +877,17 @@ List operations, ordered by `requested_at` DESC.
+ }
+ ```
+ 
+-**Errors:** 401, 403, 500, 503
++*(changed 2026-10-29)* A store failure is HTTP 500 `{"error":"Failed to list operations"}`. The driver text is logged and is absent from the body.
++
++**Errors:** 401, 403, 500 (`Failed to list operations`), 503
+ 
+ ### GET /ops/operations/{id}
+ 
+-Returns the full operation. **Errors:** 400 (bad UUID), 401, 403, 404, 500, 503.
++Returns the full operation.
++
++*(changed 2026-10-29)* A store failure is HTTP 500 `{"error":"Failed to get operation"}`. The driver text is logged and is absent from the body. A missing operation stays HTTP 404 `{"error":"operation not found"}`.
++
++**Errors:** 400 (bad UUID), 401, 403, 404 (`operation not found`), 500 (`Failed to get operation`), 503.
+ 
+ ### DELETE /ops/operations/{id}
+ 
+diff --git a/internal/api/handlers/admin_operations.go b/internal/api/handlers/admin_operations.go
+index 9891cc6..0f462bc 100644
+--- a/internal/api/handlers/admin_operations.go
++++ b/internal/api/handlers/admin_operations.go
+@@ -149,7 +149,7 @@ func (h *AdminOperationsHandler) List(c *gin.Context) {
+ 	ops, err := h.mgr.List(c.Request.Context(), filter)
+ 	if err != nil {
+ 		h.logger.Error().Err(err).Msg("list operations failed")
+-		c.JSON(http.StatusInternalServerError, errorResponseSwagger{Error: err.Error()})
++		c.JSON(http.StatusInternalServerError, errorResponseSwagger{Error: msgFailedListOperations})
+ 		return
+ 	}
+ 	c.JSON(http.StatusOK, listResponse{Operations: ops, Count: len(ops)})
+@@ -190,7 +190,7 @@ func (h *AdminOperationsHandler) Get(c *gin.Context) {
+ 	}
+ 	if err != nil {
+ 		h.logger.Error().Err(err).Stringer("id", id).Msg("get operation failed")
+-		c.JSON(http.StatusInternalServerError, errorResponseSwagger{Error: err.Error()})
++		c.JSON(http.StatusInternalServerError, errorResponseSwagger{Error: msgFailedGetOperation})
+ 		return
+ 	}
+ 	c.JSON(http.StatusOK, op)
+diff --git a/internal/api/handlers/admin_operations_test.go b/internal/api/handlers/admin_operations_test.go
+index 6adaa22..60ec52d 100644
+--- a/internal/api/handlers/admin_operations_test.go
++++ b/internal/api/handlers/admin_operations_test.go
+@@ -1,6 +1,7 @@
+ package handlers
+ 
+ import (
++	"bytes"
+ 	"context"
+ 	"encoding/json"
+ 	"errors"
+@@ -69,10 +70,14 @@ func (m *mockOperationsManager) Cancel(ctx context.Context, id uuid.UUID) error
+ // path, /ops/operations (the D18 tree split moved these out from under
+ // /admin; this builder predates that split and is corrected here).
+ func newOperationsRouter(mgr OperationsManager) *gin.Engine {
++	logger := zerolog.Nop()
++	return newOperationsRouterWithLogger(mgr, &logger)
++}
++
++func newOperationsRouterWithLogger(mgr OperationsManager, logger *zerolog.Logger) *gin.Engine {
+ 	gin.SetMode(gin.TestMode)
+ 	r := gin.New()
+-	logger := zerolog.Nop()
+-	h := NewAdminOperationsHandler(mgr, &logger)
++	h := NewAdminOperationsHandler(mgr, logger)
+ 	r.GET("/ops/operations", h.List)
+ 	r.GET("/ops/operations/:id", h.Get)
+ 	r.DELETE("/ops/operations/:id", h.Cancel)
+@@ -266,15 +271,18 @@ func TestAdminOperations_List_ManagerError_Returns500(t *testing.T) {
+ 			return nil, errors.New("db down")
+ 		},
+ 	}
+-	router := newOperationsRouter(mgr)
++	var logs bytes.Buffer
++	logger := zerolog.New(&logs)
++	router := newOperationsRouterWithLogger(mgr, &logger)
+ 
+ 	req := httptest.NewRequest(http.MethodGet, "/ops/operations", nil)
+ 	w := httptest.NewRecorder()
+ 	router.ServeHTTP(w, req)
+ 
+ 	if w.Code != http.StatusInternalServerError {
+-		t.Errorf("expected 500, got %d", w.Code)
++		t.Fatalf("expected 500, got %d (body: %s)", w.Code, w.Body.String())
+ 	}
++	assertFixedOperationError(t, w.Body.Bytes(), logs.String(), "Failed to list operations", "db down")
+ }
+ 
+ // ============================================================================
+@@ -342,8 +350,9 @@ func TestAdminOperations_Get_NotFound_Returns404(t *testing.T) {
+ 	router.ServeHTTP(w, req)
+ 
+ 	if w.Code != http.StatusNotFound {
+-		t.Errorf("expected 404, got %d", w.Code)
++		t.Fatalf("expected 404, got %d (body: %s)", w.Code, w.Body.String())
+ 	}
++	assertOperationError(t, w.Body.Bytes(), "operation not found")
+ }
+ 
+ func TestAdminOperations_Get_ManagerError_Returns500(t *testing.T) {
+@@ -352,14 +361,42 @@ func TestAdminOperations_Get_ManagerError_Returns500(t *testing.T) {
+ 			return nil, errors.New("db down")
+ 		},
+ 	}
+-	router := newOperationsRouter(mgr)
++	var logs bytes.Buffer
++	logger := zerolog.New(&logs)
++	router := newOperationsRouterWithLogger(mgr, &logger)
+ 
+ 	req := httptest.NewRequest(http.MethodGet, "/ops/operations/"+uuid.New().String(), nil)
+ 	w := httptest.NewRecorder()
+ 	router.ServeHTTP(w, req)
+ 
+ 	if w.Code != http.StatusInternalServerError {
+-		t.Errorf("expected 500, got %d", w.Code)
++		t.Fatalf("expected 500, got %d (body: %s)", w.Code, w.Body.String())
++	}
++	assertFixedOperationError(t, w.Body.Bytes(), logs.String(), "Failed to get operation", "db down")
++}
++
++func assertOperationError(t *testing.T, body []byte, want string) {
++	t.Helper()
++	var resp errorResponseSwagger
++	if err := json.Unmarshal(body, &resp); err != nil {
++		t.Fatalf("unmarshal: %v", err)
++	}
++	if resp.Error != want {
++		t.Errorf("error = %q, want %q", resp.Error, want)
++	}
++	if strings.TrimSpace(string(body)) != `{"error":"`+want+`"}` {
++		t.Errorf("body = %s, want {\"error\":%q}", body, want)
++	}
++}
++
++func assertFixedOperationError(t *testing.T, body []byte, logs, want, driverText string) {
++	t.Helper()
++	if strings.Contains(string(body), driverText) {
++		t.Fatalf("response leaked driver text: %s", body)
++	}
++	assertOperationError(t, body, want)
++	if !strings.Contains(logs, driverText) {
++		t.Fatalf("log %q does not contain driver text", logs)
+ 	}
+ }
+ 
+diff --git a/internal/api/handlers/constants.go b/internal/api/handlers/constants.go
+index d948172..2c4a7c2 100644
+--- a/internal/api/handlers/constants.go
++++ b/internal/api/handlers/constants.go
+@@ -50,6 +50,12 @@ const (
+ 	msgIdentityUnavailable         = "identity service not configured"
+ 	msgOperationsManagerNotConfig  = "operations manager not configured"
+ 	msgFailedCancelOperation       = "Failed to cancel operation"
++	msgFailedListOperations        = "Failed to list operations"
++	msgFailedGetOperation          = "Failed to get operation"
++	msgFailedResolveExternalID     = "Failed to resolve external_id"
++	msgCannotProvideBothIDs        = "cannot provide both company_id and external_id"
++	msgEitherCompanyOrExternalID   = "either company_id or external_id is required"
++	msgCompanyServiceNotAvailable  = "company service not available"
+ 	msgCompanyOrExternalIDRequired = "company_id or external_id is required"
+ 	msgCompanyPathIDTooLong        = "id exceeds maximum length of 256 bytes"
+ 	msgFailedReconcileEventStatus  = "Failed to reconcile event status"
+diff --git a/internal/api/handlers/events.go b/internal/api/handlers/events.go
+index 512a80e..e51cc7f 100644
+--- a/internal/api/handlers/events.go
++++ b/internal/api/handlers/events.go
+@@ -1044,7 +1044,7 @@ func (h *EventsHandler) resolvePayloadCompanyID(ctx context.Context, payload map
+ 	}
+ 
+ 	if companyID != "" && externalID != "" {
+-		return "", fmt.Errorf("cannot provide both company_id and external_id")
++		return "", errors.New(msgCannotProvideBothIDs)
+ 	}
+ 
+ 	if companyID != "" {
+@@ -1052,7 +1052,7 @@ func (h *EventsHandler) resolvePayloadCompanyID(ctx context.Context, payload map
+ 	}
+ 
+ 	if h.companyService == nil {
+-		return "", fmt.Errorf("company service not available")
++		return "", errors.New(msgCompanyServiceNotAvailable)
+ 	}
+ 
+ 	company, err := h.companyService.GetByExternalID(ctx, externalID)
+@@ -1085,12 +1085,12 @@ func optionalPayloadString(payload map[string]interface{}, key string) (string,
+ func (h *EventsHandler) resolveCompanyID(ctx context.Context, companyIDParam, externalIDParam string) (string, error) {
+ 	// Both cannot be provided.
+ 	if companyIDParam != "" && externalIDParam != "" {
+-		return "", fmt.Errorf("cannot provide both company_id and external_id")
++		return "", errors.New(msgCannotProvideBothIDs)
+ 	}
+ 
+ 	// At least one must be provided.
+ 	if companyIDParam == "" && externalIDParam == "" {
+-		return "", fmt.Errorf("either company_id or external_id is required")
++		return "", errors.New(msgEitherCompanyOrExternalID)
+ 	}
+ 
+ 	// If company_id provided, return it directly.
+@@ -1100,7 +1100,7 @@ func (h *EventsHandler) resolveCompanyID(ctx context.Context, companyIDParam, ex
+ 
+ 	// If external_id provided, resolve it to company_id.
+ 	if h.companyService == nil {
+-		return "", fmt.Errorf("company service not available")
++		return "", errors.New(msgCompanyServiceNotAvailable)
+ 	}
+ 
+ 	company, err := h.companyService.GetByExternalID(ctx, externalIDParam)
+@@ -1111,6 +1111,36 @@ func (h *EventsHandler) resolveCompanyID(ctx context.Context, companyIDParam, ex
+ 	return company.CompanyID, nil
+ }
+ 
++// writeResolveCompanyIDError maps a resolveCompanyID failure for GET /events
++// and GET /batches. A missing company and the static client errors stay 400
++// with the existing message. Any other lookup failure is 500 with a fixed
++// body; the driver text is logged and omitted from the response.
++func (h *EventsHandler) writeResolveCompanyIDError(c *gin.Context, externalIDParam string, err error) {
++	if errors.Is(err, core.ErrCompanyNotFound) || isClientCompanyResolveError(err) {
++		c.JSON(http.StatusBadRequest, ErrorResponse{
++			Error:   codeInvalidRequest,
++			Message: err.Error(),
++		})
++		return
++	}
++	log.Error().Err(err).Str("external_id", externalIDParam).Msg("failed to resolve external_id")
++	c.JSON(http.StatusInternalServerError, ErrorResponse{
++		Error:   codeInternalError,
++		Message: msgFailedResolveExternalID,
++	})
++}
++
++// isClientCompanyResolveError reports the unwrapped validation errors
++// resolveCompanyID returns before it calls the store.
++func isClientCompanyResolveError(err error) bool {
++	switch err.Error() {
++	case msgCannotProvideBothIDs, msgEitherCompanyOrExternalID, msgCompanyServiceNotAvailable:
++		return true
++	default:
++		return false
++	}
++}
++
+ // ListBatches handles GET /batches.
+ // Returns a list of batches with filtering and pagination.
+ // Global admins (empty CompanyID claim) may omit company_id to query across all tenants.
+@@ -1144,10 +1174,7 @@ func (h *EventsHandler) ListBatches(c *gin.Context) {
+ 		var err error
+ 		companyID, err = h.resolveCompanyID(c.Request.Context(), companyIDParam, externalIDParam)
+ 		if err != nil {
+-			c.JSON(http.StatusBadRequest, ErrorResponse{
+-				Error:   codeInvalidRequest,
+-				Message: err.Error(),
+-			})
++			h.writeResolveCompanyIDError(c, externalIDParam, err)
+ 			return
+ 		}
+ 	} else if !isGlobalAdmin(c) {
+@@ -1228,10 +1255,7 @@ func (h *EventsHandler) Query(c *gin.Context) {
+ 		var err error
+ 		companyID, err = h.resolveCompanyID(c.Request.Context(), companyIDParam, externalIDParam)
+ 		if err != nil {
+-			c.JSON(http.StatusBadRequest, ErrorResponse{
+-				Error:   codeInvalidRequest,
+-				Message: err.Error(),
+-			})
++			h.writeResolveCompanyIDError(c, externalIDParam, err)
+ 			return
+ 		}
+ 	} else if !isGlobalAdmin(c) {
+diff --git a/internal/api/handlers/events_test.go b/internal/api/handlers/events_test.go
+index ef945c6..adc85c3 100644
+--- a/internal/api/handlers/events_test.go
++++ b/internal/api/handlers/events_test.go
+@@ -1,14 +1,18 @@
+ package handlers_test
+ 
+ import (
++	"bytes"
+ 	"context"
+ 	"encoding/json"
++	"fmt"
+ 	"net/http"
+ 	"net/http/httptest"
++	"strings"
+ 	"testing"
+ 
+ 	"github.com/gin-gonic/gin"
+ 	"github.com/rs/zerolog"
++	"github.com/rs/zerolog/log"
+ 
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/api/handlers"
+ 	"github.com/inveniamcapital/InveniamIndicia/internal/api/middleware"
+@@ -45,12 +49,17 @@ func setupQueryRouterWithCompanyID(companyID string) *gin.Engine {
+ }
+ 
+ func setupQueryRouterWithClaims(companyID string, roles ...string) *gin.Engine {
++	return setupQueryRouterWithClaimsAndStore(companyID, nil, roles...)
++}
++
++func setupQueryRouterWithClaimsAndStore(companyID string, companyStore *mockCompanyStoreForEvents, roles ...string) *gin.Engine {
+ 	gin.SetMode(gin.TestMode)
+ 
+ 	logger := zerolog.Nop()
+ 	eventService := core.NewEventService(&logger, nil, nil)
+-	// Create a mock company service for external_id resolution
+-	companyStore := newMockCompanyStoreForEvents()
++	if companyStore == nil {
++		companyStore = newMockCompanyStoreForEvents()
++	}
+ 	companyService := core.NewCompanyService(companyStore, &logger)
+ 	// All clients nil - tests service unavailable responses.
+ 	eventsHandler := handlers.NewEventsHandlerWithConfig(eventService, companyService, nil, nil, nil)
+@@ -67,7 +76,8 @@ func setupQueryRouterWithClaims(companyID string, roles ...string) *gin.Engine {
+ 
+ // mockCompanyStoreForEvents is a simple mock for events tests.
+ type mockCompanyStoreForEvents struct {
+-	companies map[string]*core.Company
++	companies          map[string]*core.Company
++	getByExternalIDErr error
+ }
+ 
+ func newMockCompanyStoreForEvents() *mockCompanyStoreForEvents {
+@@ -98,6 +108,9 @@ func (m *mockCompanyStoreForEvents) GetCompany(_ context.Context, companyID stri
+ }
+ 
+ func (m *mockCompanyStoreForEvents) GetCompanyByExternalID(_ context.Context, externalID string) (*core.Company, error) {
++	if m.getByExternalIDErr != nil {
++		return nil, m.getByExternalIDErr
++	}
+ 	for _, company := range m.companies {
+ 		if company.ExternalID != nil && *company.ExternalID == externalID {
+ 			return company, nil
+@@ -330,6 +343,100 @@ func TestEventsHandler_Query_BothCompanyIDAndExternalID(t *testing.T) {
+ 	}
+ }
+ 
++func TestEventsHandler_ListBatches_BothCompanyIDAndExternalID(t *testing.T) {
++	router := setupQueryRouter()
++
++	req := httptest.NewRequest(http.MethodGet, "/batches?company_id=acme-corp&external_id="+testExternalIDForEvents, nil)
++	w := httptest.NewRecorder()
++
++	router.ServeHTTP(w, req)
++
++	if w.Code != http.StatusBadRequest {
++		t.Errorf("expected status 400, got %d", w.Code)
++	}
++
++	var resp handlers.ErrorResponse
++	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
++		t.Fatalf("failed to unmarshal: %v", err)
++	}
++	if resp.Error != errorInvalidRequest {
++		t.Errorf("expected error 'invalid_request', got %q", resp.Error)
++	}
++	if resp.Message != "cannot provide both company_id and external_id" {
++		t.Errorf("expected message about both parameters, got %q", resp.Message)
++	}
++}
++
++func TestEventsHandler_UnknownExternalID_Stays400(t *testing.T) {
++	routes := []string{"/events", "/batches"}
++	for _, route := range routes {
++		t.Run(route, func(t *testing.T) {
++			router := setupQueryRouter()
++			req := httptest.NewRequest(http.MethodGet, route+"?external_id=missing-ext", nil)
++			w := httptest.NewRecorder()
++			router.ServeHTTP(w, req)
++
++			if w.Code != http.StatusBadRequest {
++				t.Fatalf("expected status 400, got %d (body: %s)", w.Code, w.Body.String())
++			}
++			var resp handlers.ErrorResponse
++			if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
++				t.Fatalf("failed to unmarshal: %v", err)
++			}
++			if resp.Error != errorInvalidRequest {
++				t.Errorf("error = %q, want %q", resp.Error, errorInvalidRequest)
++			}
++			const want = "failed to resolve external_id: company not found"
++			if resp.Message != want {
++				t.Errorf("message = %q, want %q", resp.Message, want)
++			}
++		})
++	}
++}
++
++func TestEventsHandler_ExternalIDStoreError_HidesDriverText(t *testing.T) {
++	const driverHost = "10.0.0.5:5432"
++	driverErr := fmt.Errorf("failed to get company by external_id: dial tcp %s: connect: connection refused", driverHost)
++
++	routes := []string{"/events", "/batches"}
++	for _, route := range routes {
++		t.Run(route, func(t *testing.T) {
++			store := newMockCompanyStoreForEvents()
++			store.getByExternalIDErr = driverErr
++			router := setupQueryRouterWithClaimsAndStore("", store, "global_admin")
++
++			var logs bytes.Buffer
++			prev := log.Logger
++			log.Logger = zerolog.New(&logs)
++			t.Cleanup(func() { log.Logger = prev })
++
++			req := httptest.NewRequest(http.MethodGet, route+"?external_id="+testExternalIDForEvents, nil)
++			w := httptest.NewRecorder()
++			router.ServeHTTP(w, req)
++
++			if w.Code != http.StatusInternalServerError {
++				t.Fatalf("expected status 500, got %d (body: %s)", w.Code, w.Body.String())
++			}
++			if strings.Contains(w.Body.String(), driverHost) {
++				t.Fatalf("response leaked driver text: %s", w.Body.String())
++			}
++			var resp handlers.ErrorResponse
++			if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
++				t.Fatalf("failed to unmarshal: %v", err)
++			}
++			if resp.Error != "internal_error" {
++				t.Errorf("error = %q, want internal_error", resp.Error)
++			}
++			if resp.Message != "Failed to resolve external_id" {
++				t.Errorf("message = %q, want Failed to resolve external_id", resp.Message)
++			}
++			if !strings.Contains(logs.String(), driverHost) {
++				t.Fatalf("log %q does not contain driver text", logs.String())
++			}
++		})
++	}
++}
++
+ func TestEventsHandler_ListBatches_WithExternalID(t *testing.T) {
+ 	router := setupQueryRouter()
+ 

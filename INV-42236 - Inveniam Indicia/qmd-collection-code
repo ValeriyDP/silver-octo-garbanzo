@@ -1,0 +1,4 @@
+name=inveniam-indicia-code
+context=Inveniam Indicia Go application source
+mask=**/*.go
+root=/Users/valeriyilihmetov/work/inveniam/trace-chain/InveniamIndicia

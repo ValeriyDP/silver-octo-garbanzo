@@ -1,0 +1,17 @@
+---
+description: THE HUB vs IO Hub Service and first-use abbreviations
+globs: docs-vault/**/*.md
+alwaysApply: true
+---
+
+# Names
+
+- **THE HUB** — third-party signer. Not part of IO. Black box. This work does not change it unless the page is a THE HUB change.
+- **IO Hub Service** — IO `inv-hub-ms` / `apps/hub-service`.
+- Leave code names unchanged: `EnsureHubOrg`, `HubDocumentSyncingSucceededEvent`, `HUB_URL`, `io_hub_organisation_map`.
+- First use of an abbreviation is expanded: `Chain of Responsibility (CoR)`. If the page has Terminology, add the row there first.
+
+```markdown
+❌ Hub is a separate repo. The hub service consumes the event.
+✅ THE HUB is not part of IO. IO Hub Service consumes the event.
+```

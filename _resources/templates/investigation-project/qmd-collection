@@ -1,0 +1,3 @@
+name={{QMD_COLLECTION}}
+context={{PROJECT_NAME}} investigation
+mask=**/*.md

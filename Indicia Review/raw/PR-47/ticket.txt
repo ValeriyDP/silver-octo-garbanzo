@@ -1,0 +1,10 @@
+INV-43522
+Parent: INV-42087
+
+/ready returned 200 when no immudb integrity latch was attached, so a process that started without immudb looked healthy. The immudb client is not optional: without it, event workers still join the shared stream and dead-letter events. Startup now exits when immudb cannot connect, and a missing latch is reported as not connected rather than as a verification failure.
+
+Claims:
+- The process exits nonzero if immudb cannot be reached at startup, after closing any client already opened. Postgres and Redis still start in degraded mode when they are down.
+- GET /ready returns 503 with reason "integrity service not connected" when no latch is attached, and 503 with "integrity verification failed" when the latch has tripped.
+- GET /health stays 200. A missing latch is overall degraded with integrity error. A tripped latch stays verification_failed. GET /health/live is unchanged.
+- indicia_storage_immudb_integrity_failed is still set only by a real auditor latch, not by a missing client.

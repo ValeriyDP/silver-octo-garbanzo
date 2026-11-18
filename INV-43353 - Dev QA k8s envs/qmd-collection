@@ -1,0 +1,3 @@
+name=dev-qa-k8s-envs
+context=Dev QA k8s envs investigation
+mask=**/*.md

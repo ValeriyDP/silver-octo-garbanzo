@@ -1,0 +1,3 @@
+name=autosync
+context=Autosync investigation
+mask=**/*.md

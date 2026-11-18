@@ -1,0 +1,42 @@
+---
+name: Wiki Log
+date: 2026-11-11T14:50:00.000Z
+tags:
+  - bulk-anchoring
+  - inv-43987
+  - wiki
+  - log
+---
+
+# Wiki log
+
+Append-only. Newest at the bottom.
+
+- 2026-11-11 — Created knowledge base (`wiki/`) for Bulk Anchoring (INV-43987). Starter page: [Open Questions](Open%20Questions.md).
+- 2026-11-11 — Added [File Start Today](File%20Start%20Today.md) and [Anchoring Bucket](Anchoring%20Bucket.md). Recorded open items on the stuck `in_flight` row and a possible failed-file event.
+- 2026-11-11 — Added [Anchoring Bucket Diagrams](Anchoring%20Bucket%20Diagrams.md) (PlantUML) and [Anchoring Bucket Board](Anchoring%20Bucket%20Board.excalidraw.md) (Excalidraw).
+- 2026-11-11 — Closed both rows in [Open Questions](Open%20Questions.md). Unmarked `in_flight` holds the queue. `SyncFailed` is read in Postgres.
+- 2026-11-11 — Reworked [Anchoring Bucket](Anchoring%20Bucket.md), [Anchoring Bucket Diagrams](Anchoring%20Bucket%20Diagrams.md), and [Anchoring Bucket Board](Anchoring%20Bucket%20Board.excalidraw.md): standalone module with pluggable sources, queue per organisation, per-key transaction lock, all `client_dlt` finish exits. Extended [File Start Today](File%20Start%20Today.md) with event producers and the organisation lock. Added open questions 3–5.
+- 2026-11-11 — Queue key is now the THE HUB signing wallet ([ADR-0009](../decisions/ADR-0009%20One%20In%20Flight%20Per%20Signing%20Wallet.md)): `identity:{portfolioId}` for `client_dlt`, `org:{organisationId}` for `regular`. Updated [Anchoring Bucket](Anchoring%20Bucket.md), [Anchoring Bucket Diagrams](Anchoring%20Bucket%20Diagrams.md), [Anchoring Bucket Board](Anchoring%20Bucket%20Board.excalidraw.md). Added THE HUB write path to [File Start Today](File%20Start%20Today.md). [Open Questions](Open%20Questions.md) #3 reworded, #6 added.
+- 2026-11-11 — [Open Questions](Open%20Questions.md) #6: direction agreed, a 503 queue-full returns the file to the end of its wallet queue. Prerequisite and postponed details recorded; no ADR yet.
+- 2026-11-11 — Added [Bucket Pattern And Alternatives](Bucket%20Pattern%20And%20Alternatives.md): pattern name, job queues and brokers compared, native cloud workflow services, gaps, cases where a row holds without a terminal event. Linked from [Anchoring Bucket](Anchoring%20Bucket.md).
+- 2026-11-11 — [Open Questions](Open%20Questions.md) #7 added: recovery trigger after a hub pod reset mid-processing (periodic sweep candidate). Linked from [Bucket Pattern And Alternatives](Bucket%20Pattern%20And%20Alternatives.md).
+- 2026-11-11 — [Open Questions](Open%20Questions.md) #8 added: graceful shutdown must let the current file's in-memory stretch finish and must not start new work.
+- 2026-11-12 — [Anchoring Bucket Diagrams](Anchoring%20Bucket%20Diagrams.md): added the end-to-end `client_dlt` sequence (two files on one wallet, arrival → chain → THE HUB → webhook → finish and claim).
+- 2026-11-12 — [Bucket Pattern And Alternatives](Bucket%20Pattern%20And%20Alternatives.md): pattern renamed to per-key admission gate in front of the process; Process Manager marked as a partial match.
+- 2026-11-12 — Added [Anchoring Bucket Module](Anchoring%20Bucket%20Module.excalidraw.md) (Excalidraw). It replaces the "Module and sources" PlantUML in [Anchoring Bucket Diagrams](Anchoring%20Bucket%20Diagrams.md).
+- 2026-11-12 — Bucket statuses are snake_case in the database: `SyncSuccess` → `sync_success`, `SyncFailed` → `sync_failed`, across wiki pages, ADRs, and both Excalidraw drawings. Earlier log lines keep the old spelling.
+- 2026-11-12 — Bucket lock scope is `2001` from the hub-wide registry ([ADR-0010](../decisions/ADR-0010%20Hub%20Advisory%20Lock%20Scope%20Registry.md)). Updated [Anchoring Bucket](Anchoring%20Bucket.md), [File Start Today](File%20Start%20Today.md), [Anchoring Bucket Module](Anchoring%20Bucket%20Module.excalidraw.md), [Anchoring Bucket Board](Anchoring%20Bucket%20Board.excalidraw.md).
+- 2026-11-12 — [Open Questions](Open%20Questions.md) #7 reworked: drain after a hub restart, lease on the `in_flight` row (`owner`, `lease_until`), `hub_accepted_at` marker, drain at startup and periodically with three cases.
+- 2026-11-12 — [Open Questions](Open%20Questions.md) #7: decided no automatic rerun of an interrupted file with no record that THE HUB got the write. It becomes `sync_failed` (outcome unknown), the next row is claimed, and a rerun is a manual resync. Guards wallet funds.
+- 2026-11-13 — Investigation put on hold after feedback. Every wiki page carries an on-hold banner and the `on-hold` tag. Pages are reference only, not implementation candidates.
+- 2026-11-13 — Added [SQS FIFO Approach](SQS%20FIFO%20Approach.md) (active): start and finish event pairs and payloads, group held until finish, no event on a provisioning chain throw, group id prefix on the shared hub queue, open items.
+- 2026-11-13 — [SQS FIFO Approach](SQS%20FIFO%20Approach.md): consumer behaviour (deletes on return, retry only with global error handler, parallel batches, SNS envelope), existing queue cannot hold a group until finish, two hold options, local stack is not FIFO, webhook registry-failure fields answered.
+- 2026-11-13 — [SQS FIFO Approach](SQS%20FIFO%20Approach.md): hub consumer values recorded (15 min handler timeout, batch size 1, global error handler off). Throw-until-finished needs the global error handler.
+- 2026-11-13 — [SQS FIFO Approach](SQS%20FIFO%20Approach.md): chosen direction recorded, existing hub queue with throw-until-finished. Mechanics, requirements, redelivery cadence (about 10 s, bounded by maxReceiveCount), risks of the global error handler flag. Open list renumbered.
+- 2026-11-13 — [SQS FIFO Approach](SQS%20FIFO%20Approach.md): investigations finished. The handler timeout is not enforced on hub's batch path. Saga commands run inside the message handler, so the chain already holds the message. Handler audit: with the global error handler on, every provisioning chain failure is retried, top-ups included. Chain-throw failure event: `HubDocumentSyncingFailedEvent`. THE HUB acceptance marker: the `transactions` row. Local hub runs on RabbitMQ (tight requeue loop, no groups). Floci has no `awslocal` and no init mounts. Production queue settings not in the workspace. Open list rewritten.
+- 2026-11-13 — [SQS FIFO Approach](SQS%20FIFO%20Approach.md): floci part marked on hold. Floci stays the local AWS emulator and is picked up later.
+- 2026-11-16 — Added [Holding The Start Message](Holding%20The%20Start%20Message.md) (active): hold options compared under the minimal-infrastructure goal, why a second consumer on the shared queue fails, direct `SendMessage` instead of SNS, no throw on a dedicated queue. Linked from [SQS FIFO Approach](SQS%20FIFO%20Approach.md).
+- 2026-11-16 — [Open Questions](Open%20Questions.md) #9 added (schema follow-up): tables created from `1789471435157` onward — `deal_anchors` and `io_hub_organisation_map` — need `created_at`/`updated_at`. New migrations only (originals already ran on some envs); backfill existing rows at `now()-2h`, +2 s per row. New rows take the event time `meta.createdAt` when present, `now()` only as fallback.
+- 2026-11-16 — Floci is the local broker and was checked live. [SQS FIFO Approach](SQS%20FIFO%20Approach.md) and [Holding The Start Message](Holding%20The%20Start%20Message.md): hub is on `inveniam-events.fifo` and the hub FIFO queues; dedup, one-message group hold, and the `msList` filter work; a receive of ten does not hold the group. The on-hold Floci note is removed. Data room was not running.
+- 2026-11-17 — [SQS FIFO Approach](SQS%20FIFO%20Approach.md): added a high-level PlantUML sequence for the [ADR-0011](../decisions/ADR-0011%20FIFO%20Per-Wallet%20Chain%20Without%20Hold.md) no-hold direction — main nodes only (Data Room → hub translator → SQS FIFO per-wallet group → hub saga → THE HUB `wallet_tx_jobs` → NVNM), public fanout preserved, ack without hold.

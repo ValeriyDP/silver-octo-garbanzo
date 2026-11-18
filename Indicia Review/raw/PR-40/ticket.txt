@@ -1,0 +1,14 @@
+INV-43524
+Parent: INV-42087
+
+The Authentication section already names the D5 roles. Three endpoint descriptions in the API specification still treated "admin" as a role, and a search of the file still hit other bare "admin" wording. This change names the roles each of those lines actually admits.
+
+Claims:
+- POST /events and POST /batches/{id}/retry admit writer, company_admin, and global_admin. Only global_admin may act on another tenant.
+- Sidecar POST /v1/events admits those same three roles. Read, verify, quarantine, and erasure still refuse global_admin and operator.
+- /ops alert, hub, and batch-trace lines admit operator or global_admin. Event trace admits company_admin (own tenant) or global_admin.
+- A case-sensitive search for admin in the spec no longer hits a bare admin role.
+
+Test plan:
+- rg -n admin docs/api/API_SPECIFICATION.md classified: remaining hits are company_admin, global_admin, or /admin paths  [checked]
+- Reviewer confirms the three cited sentences match RequireWriter, validateTenantAccess, and the sidecar ingest gate  [unchecked]

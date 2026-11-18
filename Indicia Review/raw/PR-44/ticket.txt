@@ -1,0 +1,9 @@
+INV-43527
+Parent: INV-42087
+
+Production startup already rejects an empty or whitespace Redis password. Postgres and immudb reject their shipped defaults (indicia and immudb), and Redis has no compiled default, so empty is that default. This records that non-empty is the agreed bar instead of adding a length floor.
+
+Claims:
+- The closed internal-config-1 row states that a non-empty password after trim is the deliberate production and staging bar, and why there is no length floor.
+- The environment guide, config and Redis package docs, and the security supplement say INDICIA_REDIS_PASSWORD has no minimum length.
+- validatePasswords is unchanged: empty and whitespace still fail startup, and a short non-empty password still starts.

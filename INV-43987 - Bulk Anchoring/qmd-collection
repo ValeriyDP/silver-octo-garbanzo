@@ -1,0 +1,3 @@
+name=bulk-anchoring
+context=Bulk Anchoring investigation
+mask=**/*.md

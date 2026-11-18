@@ -1,0 +1,20 @@
+{
+  "pdfExportSettings": {
+    "pageSize": "Letter",
+    "landscape": false,
+    "margin": "0",
+    "downscalePercent": 100
+  },
+  "alwaysUpdateLinks": true,
+  "autoConvertHtml": false,
+  "useMarkdownLinks": true,
+  "userIgnoreFilters": [
+    "_resources/",
+    "/(^|\\/)raw\\//",
+    "/log\\.md$/",
+    "/(index)|(INDEX)\\.md$/",
+    "/(CLAUDE)|([Cc]laude)\\.md$/",
+    "/ADR Template.md/",
+    "/AGENTS.md/"
+  ]
+}

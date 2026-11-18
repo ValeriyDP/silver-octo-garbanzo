@@ -1,0 +1,9 @@
+INV-43525
+Parent: INV-42087
+
+GetAnchorStatus and GetBatch return 500 retrieval_error when a sub-lookup fails, where they previously returned a partial body. The PR calls that fail-closed behavior the right contract, and documents the error code in the API spec and swagger.
+
+Claims:
+- GET /events/{id}/anchor/status documents HTTP 500 retrieval_error (Failed to retrieve anchor status) when the event or its batch row cannot be read, instead of a 200 that omits the batch fields.
+- GET /batches/{id} documents HTTP 500 retrieval_error (Failed to retrieve batch) when the batch or its event list cannot be read, instead of a 200 without event_ids.
+- Handler status codes and messages are unchanged.

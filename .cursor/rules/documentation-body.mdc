@@ -1,0 +1,23 @@
+---
+description: Payloads, env classes, and file-grounded claims in docs-vault
+globs: docs-vault/**/*.md
+alwaysApply: true
+---
+
+# Body
+
+- Event payloads: TypeScript types in fenced blocks, not prose field tables.
+- Environments: live vs non-live. Do not cite concrete overlays (`qa9.yaml`, `prod.yaml`).
+- Cite real paths: migrations, `helm_env_configs` gotmpl, exported interfaces. Do not invent APIs.
+- Standalone handoff pages embed related material. No outbound wiki or ADR links on those pages.
+
+```ts
+export interface ClientDLTTransactionPayload {
+  dealId: string;
+  taxonomyId: string; // required IO correlation key
+  organisationId: string;
+  uri: string;
+  checksum: string;
+  checksumAlgo: string;
+}
+```

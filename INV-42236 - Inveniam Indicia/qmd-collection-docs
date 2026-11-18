@@ -1,0 +1,4 @@
+name=inveniam-indicia-docs
+context=Inveniam Indicia upstream repository docs (API, guides, plans, devops)
+mask=**/*.md
+root=/Users/valeriyilihmetov/work/inveniam/trace-chain/InveniamIndicia/docs
