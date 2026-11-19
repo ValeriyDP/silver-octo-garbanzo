@@ -31,7 +31,7 @@ Every page below is on hold and kept as reference.
 - [Anchoring Bucket Board](Anchoring%20Bucket%20Board.excalidraw.md) — Excalidraw board of the same flow. JSON: [Anchoring Bucket Board.excalidraw](Anchoring%20Bucket%20Board.excalidraw).
 - [Bucket Pattern And Alternatives](Bucket%20Pattern%20And%20Alternatives.md) — Pattern name (per-key admission gate in front of the process, keyed semaphore, Sequential Convoy; not fan-in). Why job queues and brokers do not replace it. AWS Step Functions and Azure Durable Functions as native options. Gaps against mature tools.
 - [Anchoring Bucket Module](Anchoring%20Bucket%20Module.excalidraw.md) — Excalidraw drawing of the module and sources: data room → source adapters (intake, start, finish) → core → `anchoring_bucket`. JSON: [Anchoring Bucket Module.excalidraw](Anchoring%20Bucket%20Module.excalidraw).
-- [Open Questions](Open%20Questions.md) — Two decided, one direction agreed (503 queue-full requeues to the tail), six open (manual sync wallet, taxonomy reuse, registry-failure payload, recovery after a pod reset, graceful shutdown of the current file, register again when the local registry was never stored). #9 is a schema follow-up.
+- [Open Questions](Open%20Questions.md) — Two decided, one direction agreed (503 queue-full requeues to the tail), seven open (manual sync wallet, taxonomy reuse, registry-failure payload, recovery after a pod reset, graceful shutdown of the current file, register again when the local registry was never stored, success event must store the registry and start the parked document). #9 is a schema follow-up.
 
 ## Related
 
