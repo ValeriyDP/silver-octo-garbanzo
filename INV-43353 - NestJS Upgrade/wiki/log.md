@@ -13,3 +13,4 @@ tags:
 Append-only. Newest at the bottom.
 
 - 2026-11-18 — Created knowledge base (`wiki/`) for NestJS Upgrade (INV-43353). Starter page: [Open Questions](_resources/templates/investigation-project/wiki/Open%20Questions.md).
+- 2026-11-19 — Open question 2: leave the `@inveniam/events` ↔ `@inveniam/domain-interfaces` package cycle in place for this upgrade.
