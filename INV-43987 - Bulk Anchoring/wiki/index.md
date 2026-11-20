@@ -20,7 +20,7 @@ Decisions live in [decisions/INDEX](../decisions/INDEX.md). Cross-link; do not c
 
 ## Pages
 
-- [SQS FIFO Approach](SQS%20FIFO%20Approach.md) — **Active.** Hub republishes file starts to the existing hub SQS FIFO queue, grouped by signing wallet. The start hop is implemented. The resume after the register webhook is not: the registry id, the parked document write, and that write's wallet group are lost. Open items are on the page.
+- [SQS FIFO Approach](SQS%20FIFO%20Approach.md) — **Active.** Hub republishes file starts to the existing hub SQS FIFO queue, grouped by signing wallet. The start hop and the register-success resume hop are implemented. The resume uses the portfolio identity group when the deal has one, and the org group when it does not. Open items are on the page.
 - [Holding The Start Message](Holding%20The%20Start%20Message.md) — **Active.** Ways to hold a start message until the finish: throw with the global error handler, wait inside the handler, dedicated queue with its own consumer. Why a second consumer on the shared queue fails. Direct `SendMessage` instead of SNS.
 
 Every page below is on hold and kept as reference.
@@ -31,7 +31,7 @@ Every page below is on hold and kept as reference.
 - [Anchoring Bucket Board](Anchoring%20Bucket%20Board.excalidraw.md) — Excalidraw board of the same flow. JSON: [Anchoring Bucket Board.excalidraw](Anchoring%20Bucket%20Board.excalidraw).
 - [Bucket Pattern And Alternatives](Bucket%20Pattern%20And%20Alternatives.md) — Pattern name (per-key admission gate in front of the process, keyed semaphore, Sequential Convoy; not fan-in). Why job queues and brokers do not replace it. AWS Step Functions and Azure Durable Functions as native options. Gaps against mature tools.
 - [Anchoring Bucket Module](Anchoring%20Bucket%20Module.excalidraw.md) — Excalidraw drawing of the module and sources: data room → source adapters (intake, start, finish) → core → `anchoring_bucket`. JSON: [Anchoring Bucket Module.excalidraw](Anchoring%20Bucket%20Module.excalidraw).
-- [Open Questions](Open%20Questions.md) — Two decided, one direction agreed (503 queue-full requeues to the tail), seven open (manual sync wallet, taxonomy reuse, registry-failure payload, recovery after a pod reset, graceful shutdown of the current file, register again when the local registry was never stored, success event must store the registry and start the parked document). #9 is a schema follow-up.
+- [Open Questions](Open%20Questions.md) — Three decided (including the register-success resume), one direction agreed (503 queue-full requeues to the tail), six open (manual sync wallet, taxonomy reuse, registry-failure payload, recovery after a pod reset, graceful shutdown of the current file, register again when the local registry was never stored). #9 is a schema follow-up.
 
 ## Related
 

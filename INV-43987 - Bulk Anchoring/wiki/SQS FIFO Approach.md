@@ -390,15 +390,17 @@ note over DR : nothing more happens for this file
 
 ## What the FIFO implementation loses
 
-[ADR-0011](../decisions/ADR-0011%20FIFO%20Per-Wallet%20Chain%20Without%20Hold.md) keeps three broker hops, each one an `Internal` event grouped by the signing wallet. Only the first hop is in the code.
+[ADR-0011](../decisions/ADR-0011%20FIFO%20Per-Wallet%20Chain%20Without%20Hold.md) keeps three broker hops, each one an `Internal` event grouped by the signing wallet. The start hop and the resume hop are in the code. The regular-start hop is not.
 
 | Hop | Event | In the code | Seen 2026-11-19 |
 | --- | --- | --- | --- |
 | Start | `ClientDLTTransaction` → `ClientDLTTransactionInternal`, group `anchoring:identity:{portfolioId}` | Yes. `PublishClientDltTransactionInternalHandler` sends it with `HubInternalEvents` straight to the command queue (source: `publish-client-dlt-transaction-internal.event.handler.ts`, `hub-internal-events.ts`). | Ran. Register reached NVNM. |
-| Resume | `HubSymbolRegisteringSucceededEvent` → an internal continuation, same wallet group, then `RunDocumentProvisioning` | No translator. `StoreDealAnchorRegistrySaga` still listens to the public event (source: `store-deal-anchor-registry.saga.ts`). | The public event was stored and hub never consumed it. |
+| Resume | `HubSymbolRegisteringSucceededEvent` → `HubSymbolRegisteringSucceededInternal`, then `RunDocumentProvisioning` | Yes. `PublishHubSymbolRegisteringSucceededInternalHandler` sends it with `HubInternalEvents` when the success event is committed, and again if that public event arrives on the event queue. `StoreDealAnchorRegistrySaga` listens only to the internal event (source: `publish-hub-symbol-registering-succeeded-internal.event.handler.ts`, `store-deal-anchor-registry.saga.ts`). | Before this hop, the public event was stored and hub never consumed it. |
 | Regular start | `HubDocumentSyncingRequestedEvent` → `HubDocumentSyncingRequestedInternal`, group `anchoring:org:{organisationId}` | No translator. | Not exercised on this deal. |
 
-The resume is the loss. Before this hop, a register webhook continued inside hub: store `deal_anchors.registry` from `symbol`, take `pending_document`, run `RunDocumentProvisioningCommand` (source: `store-deal-anchor-registry.command.ts`). ADR-0011 moves that continuation onto the wallet group. The start hop was built to skip the event store (`InternalSQSProducer`). The resume was left on the old publish.
+The group id follows the signing wallet. A deal whose `deal_anchors` row resolves a portfolio (`resolveProvisioningPortfolioId`: its own portfolio when it has no parents, otherwise `parentPortfolioIds[0]`) uses `anchoring:identity:{portfolioId}`. A mapped deal with no portfolio uses `anchoring:org:{organisationId}`. No hub-organisation mapping, no `deal_anchors` row, or neither id: the handler does not send. Dedup id is `taxonomyId`, then `transactionId`, then the aggregate id. The public event still goes to the event store for deals.
+
+The 2026-11-19 run was before this hop. A register webhook used to continue inside hub: store `deal_anchors.registry` from `symbol`, take `pending_document`, run `RunDocumentProvisioningCommand` (source: `store-deal-anchor-registry.command.ts`). ADR-0011 moves that continuation onto the wallet group. The start hop was built to skip the event store (`InternalSQSProducer`). Until 2026-11-20 the resume was left on the old publish.
 
 That old publish does not start a saga by itself. `NestAwsPubSub.publish` writes the broker message and does not notify the in-process subject, so sagas run only when the command queue calls `executeCommandHandlers` (source: `NestAwsPubSub.ts`, `NestAwsService.ts`). `HubSymbolRegisteringSucceededEvent` is not a direct publish and not an internal send. `EventStoreProducer.publish` only calls `aggregateRepository.addEvent` (source: `event-store-producer.ts`). Getting back to the saga depends on the relay delivering that row to SNS and the command queue.
 
