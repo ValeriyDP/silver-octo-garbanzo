@@ -20,7 +20,7 @@ Decisions live in [decisions/INDEX](../decisions/INDEX.md). Cross-link; do not c
 
 ## Pages
 
-- [SQS FIFO Approach](SQS%20FIFO%20Approach.md) — **Active.** Hub republishes file starts to the existing hub SQS FIFO queue, grouped by signing wallet. Start and finish event pairs with payloads, holding the group until finish, handler audit for the global error handler, chain-throw failure event, file record, local stack on Floci (hub is on it; a receive of one message holds the group), open items.
+- [SQS FIFO Approach](SQS%20FIFO%20Approach.md) — **Active.** Hub republishes file starts to the existing hub SQS FIFO queue, grouped by signing wallet. The start hop is implemented. The resume after the register webhook is not: the registry id, the parked document write, and that write's wallet group are lost. Open items are on the page.
 - [Holding The Start Message](Holding%20The%20Start%20Message.md) — **Active.** Ways to hold a start message until the finish: throw with the global error handler, wait inside the handler, dedicated queue with its own consumer. Why a second consumer on the shared queue fails. Direct `SendMessage` instead of SNS.
 
 Every page below is on hold and kept as reference.

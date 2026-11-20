@@ -18,7 +18,7 @@ tags:
 
 **Sources**: `shared-modules/Events/Hub/Onboarding/client-dlt-transaction.event.ts`, `shared-modules/Events/Hub/Common/hub-document-syncing-*.event.ts`, `shared-modules/Events/Hub/Common/hub-symbol-registering-*.event.ts`, `shared-modules/Events/Hub/interfaces.ts`, `shared-modules/Events/DataRoom/Interfaces/data-room.interfaces.ts`, `shared-modules/Events/EventsConstants.ts`, `shared-modules/NestAwsCqrs/src/broker/aws/SnsProducer.ts`, `apps/data-room-service/src/data-room/taxonomy/domain/entity.ts`, `apps/hub-service/src/transactions/domain/models/transactions.model.ts`, `apps/hub-service/src/organisation-provisioning/domain/commands/run-portfolio-provisioning.command.ts`, `apps/hub-service/src/organisation-provisioning/application/sagas/client-dlt-provisioning.saga.ts`, `shared-modules/NestAwsCqrs/src/NestAwsService.ts`, `shared-modules/NestAwsCqrs/src/NestAwsCqrs.ts`, `shared-modules/NestAwsCqrs/src/NestAwsPubSub.ts`, `shared-modules/NestAwsCqrs/src/broker/rabbitmq/RabbitMqConsumer.ts`, `node_modules/sqs-consumer/dist/consumer.js`, `apps/hub-service/src/transactions/application/providers/ledger-io.provider.ts`, `apps/data-room-service/src/data-room/taxonomy/application/sagas/taxonomy.saga.ts`, `apps/data-room-service/src/data-room/file/application/sagas/file.saga.ts`, `docker-compose.yml`, `docker-compose.override.yml`, `helm/dev-tools/charts/inv-aws`, `dev-tools/local-aws`.
 
-**Last updated**: 2026-11-17
+**Last updated**: 2026-11-20
 
 ---
 
@@ -387,6 +387,34 @@ TR -> DR : terminal event (public)
 note over DR : nothing more happens for this file
 @enduml
 ```
+
+## What the FIFO implementation loses
+
+[ADR-0011](../decisions/ADR-0011%20FIFO%20Per-Wallet%20Chain%20Without%20Hold.md) keeps three broker hops, each one an `Internal` event grouped by the signing wallet. Only the first hop is in the code.
+
+| Hop | Event | In the code | Seen 2026-11-19 |
+| --- | --- | --- | --- |
+| Start | `ClientDLTTransaction` → `ClientDLTTransactionInternal`, group `anchoring:identity:{portfolioId}` | Yes. `PublishClientDltTransactionInternalHandler` sends it with `HubInternalEvents` straight to the command queue (source: `publish-client-dlt-transaction-internal.event.handler.ts`, `hub-internal-events.ts`). | Ran. Register reached NVNM. |
+| Resume | `HubSymbolRegisteringSucceededEvent` → an internal continuation, same wallet group, then `RunDocumentProvisioning` | No translator. `StoreDealAnchorRegistrySaga` still listens to the public event (source: `store-deal-anchor-registry.saga.ts`). | The public event was stored and hub never consumed it. |
+| Regular start | `HubDocumentSyncingRequestedEvent` → `HubDocumentSyncingRequestedInternal`, group `anchoring:org:{organisationId}` | No translator. | Not exercised on this deal. |
+
+The resume is the loss. Before this hop, a register webhook continued inside hub: store `deal_anchors.registry` from `symbol`, take `pending_document`, run `RunDocumentProvisioningCommand` (source: `store-deal-anchor-registry.command.ts`). ADR-0011 moves that continuation onto the wallet group. The start hop was built to skip the event store (`InternalSQSProducer`). The resume was left on the old publish.
+
+That old publish does not start a saga by itself. `NestAwsPubSub.publish` writes the broker message and does not notify the in-process subject, so sagas run only when the command queue calls `executeCommandHandlers` (source: `NestAwsPubSub.ts`, `NestAwsService.ts`). `HubSymbolRegisteringSucceededEvent` is not a direct publish and not an internal send. `EventStoreProducer.publish` only calls `aggregateRepository.addEvent` (source: `event-store-producer.ts`). Getting back to the saga depends on the relay delivering that row to SNS and the command queue.
+
+Observed on deal **New deal** (`1d77de03-70dd-4ea4-93bb-80f9a07f8237`), taxonomy `30d499fb-a888-4d0f-9797-3be956f6b099`, job `ab027d5d-3e58-46eb-b5e4-1cb5a3151024`, transaction `0xf48f21ed3e468dbc0164d90165d7ca8d87ab593751b96e62f69521377aad6399`:
+
+- The webhook body has no registry id. It carries `organizationId`, `status`, `transactionId`, `transactionMethod` `addRegistry`, `transactionStatus`, `jobId`, and `extraData` (deal id, deal name, organisation id, organisation name).
+- Hub then reads the receipt and sets `symbol` to the decoded registry id `5600` on `HubSymbolRegisteringSucceededEvent` (source: `nvnm-ledger.provider.ts`, `decodeRegistryCreatedFromReceipt`). That publish was logged at 17:39:27Z.
+- Hub never logged `Event received` or `Command received` for that event. `StoreDealAnchorRegistrySaga` did not run. Both hub queues were empty afterwards.
+
+What that file lost:
+
+1. **The registry id.** `5600` existed only on the unpublished-to-the-queue event. `deal_anchors.registry` stayed empty until it was written by hand with `updateRegistryForMappedDeal`. The pending document was left in place.
+2. **The document write.** Taxonomy `30d499fb-a888-4d0f-9797-3be956f6b099` is still parked in `pending_document`. `RunDocumentProvisioningCommand` never started, so there is no document transaction.
+3. **The wallet group for that write.** No internal message was sent with `anchoring:identity:6ffbf6fb-9391-4710-ad12-341485f51a52`. The document write is not in that portfolio's FIFO group. The public event's group would have been the hub transaction aggregate id, which ADR-0011 refuses to use.
+
+The regular-start hop is the same kind of hole for organisations that sign with org HubKeys. It has not been seen on a live file in this run.
 
 ## Related pages
 
