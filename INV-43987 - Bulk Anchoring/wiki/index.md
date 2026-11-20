@@ -20,7 +20,7 @@ Decisions live in [decisions/INDEX](../decisions/INDEX.md). Cross-link; do not c
 
 ## Pages
 
-- [SQS FIFO Approach](SQS%20FIFO%20Approach.md) — **Active.** Hub republishes file starts to the existing hub SQS FIFO queue, grouped by signing wallet. The start hop and the register-success resume hop are implemented. The resume uses the portfolio identity group when the deal has one, and the org group when it does not. Open items are on the page.
+- [SQS FIFO Approach](SQS%20FIFO%20Approach.md) — **Active.** Hub republishes file starts to the existing hub SQS FIFO queue, grouped by signing wallet. The start hop and the register-success resume hop are implemented. The regular-start hop is planned and not built: org HubKeys, group `anchoring:org:{organisationId}`. Open items are on the page.
 - [Holding The Start Message](Holding%20The%20Start%20Message.md) — **Active.** Ways to hold a start message until the finish: throw with the global error handler, wait inside the handler, dedicated queue with its own consumer. Why a second consumer on the shared queue fails. Direct `SendMessage` instead of SNS.
 
 Every page below is on hold and kept as reference.
