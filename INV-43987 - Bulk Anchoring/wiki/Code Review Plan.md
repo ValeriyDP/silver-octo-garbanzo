@@ -1,6 +1,6 @@
 ---
 name: Code Review Plan
-date: 2026-11-23T17:20:00.000Z
+date: 2026-11-23T19:30:00.000Z
 tags:
   - bulk-anchoring
   - inv-43987
@@ -11,11 +11,11 @@ tags:
 # Code Review Plan
 
 > [!info] Active
-> Review of the code that is already running. This page lists what to delete and what to leave in place. It is not a new design.
+> Review of the code that is already running. This page lists what to delete, what to leave, and the one open design direction. Legacy tokenization is out of scope and described on its own page.
 
-**Summary**: The regular-organisation start hop and the 503 / hub-down retry are small enough. The review removes dead branches and one duplicated group-id string. It leaves the three `Retryable` rethrows, the SQS consumer patch, and the log-only `@EventsHandler` classes. Those classes are how the command queue learns the internal event name.
+**Summary**: The review covers NVNM document anchoring: register (`addRegistry`), document sync, connect, and status polling. Tokenization (deploy, supply, distribution, token relations) and every non-NVNM ledger are legacy, are frozen, and live on [Legacy Tokenization](Legacy%20Tokenization.md). Four deletions are settled. One direction is open: a single in-process module in `tokenization/` that decides whether a failed THE HUB call is an outage to redeliver or a final failure. It stays inside IO Hub Service. `NestAwsCqrs` is not edited.
 
-**Sources**: `apps/hub-service/src/sqs/retryable.ts`, `apps/hub-service/src/sqs/hub-unavailable.error.ts`, `apps/hub-service/src/sqs/install-hub-sqs-retry.ts`, `apps/hub-service/src/main.ts`, `apps/hub-service/src/tokenization/hub-tokenization.provider.ts`, `apps/hub-service/src/transactions/domain/models/transactions.model.ts`, `apps/hub-service/src/transactions/domain/commands/sync-document.command.ts`, `apps/hub-service/src/transactions/application/providers/ledger-io.provider.ts`, `apps/hub-service/src/organisation-provisioning/domain/anchoring-message-group.ts`, `apps/hub-service/src/organisation-provisioning/domain/events/publish-hub-document-syncing-requested-internal.event.handler.ts`, `apps/hub-service/src/organisation-provisioning/domain/events/publish-client-dlt-transaction-internal.event.handler.ts`, `apps/hub-service/src/organisation-provisioning/domain/events/hub-document-syncing-requested-internal.event.ts`, `apps/hub-service/src/organisation-provisioning/domain/events/client-dlt-transaction-internal.event.ts`, `apps/hub-service/src/organisation-provisioning/domain/events/hub-symbol-registering-succeeded-internal.event.ts`, `shared-modules/NestAwsCqrs/src/NestAwsService.ts`.
+**Sources**: `apps/hub-service/src/sqs/retryable.ts`, `apps/hub-service/src/sqs/hub-unavailable.error.ts`, `apps/hub-service/src/sqs/install-hub-sqs-retry.ts`, `apps/hub-service/src/main.ts`, `apps/hub-service/src/tokenization/hub-tokenization.provider.ts`, `apps/hub-service/src/tokenization/smart-account-tokenization.provider.ts`, `apps/hub-service/src/transactions/domain/models/transactions.model.ts`, `apps/hub-service/src/transactions/domain/commands/sync-document.command.ts`, `apps/hub-service/src/transactions/domain/commands/register-symbol.command.ts`, `apps/hub-service/src/transactions/application/providers/ledger-io.provider.ts`, `apps/hub-service/src/transactions/application/providers/base-ledger.provider.ts`, `apps/hub-service/src/transactions/application/providers/tokenization/nvnm/nvnm-ledger.provider.ts`, `apps/hub-service/src/organisation-provisioning/domain/chain/shared/identity-wallet-underfunded.error.ts`, `apps/hub-service/src/organisation-provisioning/domain/anchoring-message-group.ts`, `apps/hub-service/src/organisation-provisioning/domain/events/publish-hub-document-syncing-requested-internal.event.handler.ts`, `apps/hub-service/src/organisation-provisioning/domain/events/publish-client-dlt-transaction-internal.event.handler.ts`, `shared-modules/NestAwsCqrs/src/NestAwsService.ts`.
 
 **Last updated**: 2026-11-23
 
@@ -23,13 +23,20 @@ tags:
 
 ## Scope
 
-IO Hub Service only. THE HUB queue depth stays a THE HUB setting (`WALLET_TX_QUEUE_MAX_DEPTH`). The local emit script stays a local tool and is outside this review.
+IO Hub Service only, NVNM only. In scope:
+
+- The regular start: `HubDocumentSyncingRequestedEvent`, its internal copy, and `SyncDocumentCommand`.
+- Register: `HubSymbolRegisteringRequestedEvent`, `RegisterSymbolCommand`, and the NVNM `addRegistry` write.
+- `connect()`, `getProfile()`, `setAccessKey()`, and `write()` on `HubTokenizationProvider`.
+- The internal sends on `anchoring:org:` and `anchoring:identity:` groups.
+
+Out of scope: legacy tokenization, every non-NVNM ledger provider, `SmartAccountTokenizationProvider` (it does not call THE HUB), THE HUB queue depth (`WALLET_TX_QUEUE_MAX_DEPTH`), and the local emit script.
 
 The behaviour to preserve:
 
 - A regular file is copied to `HubDocumentSyncingRequestedInternal` and sent on `anchoring:org:{organisationId}`, deduplicated by `taxonomyId`.
 - `TransactionsSagas.syncDocument` listens only to that internal event.
-- No HTTP response from THE HUB, and HTTP 503, leave the command message on the queue. No `HubDocumentSyncingFailedEvent`, no Failed transaction row.
+- No HTTP response from THE HUB, and HTTP 503 on the write, leave the command message on the queue. No `HubDocumentSyncingFailedEvent`, no Failed transaction row.
 - A credential rejection (HTTP 422 from `connect()`) and any other write error stay final.
 
 ## Delete
@@ -48,44 +55,74 @@ Replace the template string with `anchoringMessageGroupId({ portfolioId })`. The
 
 ### Empty `Retryable` interface
 
-`retryable.ts` exports an empty interface and an abstract class of the same name. TypeScript merges them. Nothing implements the interface on its own. Delete the interface. Keep the abstract class. `HubUnavailableError` stays the only subclass.
+`retryable.ts` exports an empty interface and an abstract class of the same name. TypeScript merges them. Nothing implements the interface on its own. Delete the interface. Keep the abstract class. It has two subclasses: `HubUnavailableError` and `IdentityWalletUnderfundedError`. `installHubSqsRetry` redelivers both.
 
 ### Local alias of the connection message
 
-`hub-tokenization.provider.ts` copies `HUB_CONNECTION_NOT_ESTABLISHED` into `CONNECTION_NOT_ESTABLISHED`. Use the imported constant at the four call sites.
+`hub-tokenization.provider.ts` copies `HUB_CONNECTION_NOT_ESTABLISHED` into `CONNECTION_NOT_ESTABLISHED`. Use the imported constant at the call sites.
+
+## Outage rule
+
+### Where the rule lives today
+
+Six modules each know a part of "THE HUB is unreachable or full, redeliver; anything else is final":
+
+| Module | What it decides |
+| --- | --- |
+| `HubTokenizationProvider.connect` | A 4xx is a final 422. No response and any other failure are a `BadGatewayException` (502). |
+| `HubTokenizationProvider.write` | No response and HTTP 503 become `HubUnavailableError`. Every other failure is final. |
+| `LedgerIOProvider.write` catch | Rethrows `Retryable` before it inserts a Failed row. |
+| `TransactionsModel.syncDocument` catch | Rethrows `Retryable`. Converts any `HttpException` with status 502 into `HubUnavailableError`. |
+| `SyncDocumentCommandHandler` catch | Rethrows `Retryable` and skips `commit()`. |
+| `installHubSqsRetry` | Makes the SQS consumer keep a `Retryable` message. |
+
+### Gaps
+
+- `setAccessKey` turns every error into a 422 and `getProfile` turns every error into a 422. A THE HUB outage on either is final, while the same outage on the write is redelivered.
+- The 502 check in `TransactionsModel.syncDocument` matches any `BadGatewayException`, including the ones the hub-admin clients throw.
+- Register reaches `LedgerIOProvider.write`. On an outage the write rethrows before the Failed row, and `registerSymbol` publishes `HubSymbolRegisteringFailedEvent`. Register is not redelivered and leaves no Failed row.
+- `LedgerIOProvider.write` rethrows `Retryable` for every caller, so legacy flows also leave no Failed row on an outage. That is recorded on [Legacy Tokenization](Legacy%20Tokenization.md) and is not fixed here.
+
+### Direction
+
+One small in-process module in `apps/hub-service/src/tokenization/`, next to `HubTokenizationProvider`. It takes a failed THE HUB call and answers outage or final. `HubTokenizationProvider` is the only adapter that calls THE HUB, so the module needs no port. `HubUnavailableError`, `Retryable`, and `installHubSqsRetry` stay where they are. No file moves.
+
+Rule by call type:
+
+- Reads (`connect`, `getProfile`, `setAccessKey`): no response and any 5xx are an outage. Any 4xx is final.
+- The write POST: no response and HTTP 503 are an outage. Any other failure is final, because a 504 may mean the write reached THE HUB.
+
+The 502 status check on `TransactionsModel` is replaced by a typed marker: `connect()` throws a `BadGatewayException` subclass. It is still an `HttpException` with status 502, so every other caller behaves as now.
+
+### Open decisions
+
+1. Reach. Whether register redelivers on an outage like document sync, or stays final and only gets its Failed row back.
+2. How document sync opts in, so that a flow that does not redeliver still inserts its Failed row.
+3. Whether the three `instanceof Retryable` rethrows stay as they are or collapse into one place.
+4. Whether `getProfile` and `setAccessKey` change failure reason text for the flows that share them. The event stays Failed.
+5. Which existing tests are replaced by tests at the module's interface.
 
 ## Leave in place
 
-### Three rethrows
-
-`Retryable` is rethrown in three catches. Each catch would otherwise finish the file:
-
-| Catch | What it would do |
-| --- | --- |
-| `LedgerIOProvider.write` | Insert a Failed transaction row |
-| `TransactionsModel.syncDocument` | Apply `HubDocumentSyncingFailedEvent` |
-| `SyncDocumentCommandHandler.execute` | Log, skip the rethrow, then `commit()` |
-
-Keep all three. A fourth wrapper, interceptor, or retry policy service would only forward the same error.
-
-`syncDocument` also turns an `HttpException` with status 502 into `HubUnavailableError`. That is the `connect()` path: no response and HTTP 5xx become `BadGatewayException` with `Connection with provider was not established`. `write()` already throws `HubUnavailableError` for no response and for HTTP 503. Leave the 502 conversion on `syncDocument`. Moving it into `connect()` would throw `HubUnavailableError` at every caller, including symbol register, whose catch publishes `HubSymbolRegisteringFailedEvent` and does not rethrow. That is a behaviour change and is out of this cleanup.
-
-`HUB_QUEUE_FULL` (`Hub wallet transaction queue is full`) is the fallback when a 503 body has no message. THE HUB's own body is `Wallet transaction queue is at capacity. Retry later.`, and `write()` already prefers that body. Keep the fallback. Do not match on both strings.
-
 ### SQS patch
 
-`installHubSqsRetry` replaces `SqsConsumer.prototype.isRetryable` so `instanceof Retryable` is redelivered while `ENABLE_QUEUE_GLOBAL_ERROR_HANDLER` stays off (source: `install-hub-sqs-retry.ts`, `main.ts`). NestAwsCqrs stays unchanged. Do not fork `SqsConsumer` and do not add a second patch.
+`installHubSqsRetry` replaces `SqsConsumer.prototype.isRetryable` so `instanceof Retryable` is redelivered while `ENABLE_QUEUE_GLOBAL_ERROR_HANDLER` stays off (source: `install-hub-sqs-retry.ts`, `main.ts`). `NestAwsCqrs` stays unchanged. Do not fork `SqsConsumer` and do not add a second patch.
 
 ### Log-only event handlers
 
 `HubDocumentSyncingRequestedInternalEventHandler`, `ClientDLTTransactionInternalEventHandler`, and `HubSymbolRegisteringSucceededInternalEventHandler` only write a log line. Their `@EventsHandler` decorator is the registration. `NestAwsService.convertEventHandlersToEvents` puts `eventConstructor.name` into the supported set from that metadata. A command-queue message whose name is missing from that set is dropped (source: `NestAwsService.ts`).
 
-Keep the three classes. Do not add a side list of event names. The log line can go only if `Command received` is enough; the class stays.
+Keep the three classes. Do not add a side list of event names.
+
+### `HUB_QUEUE_FULL`
+
+`HUB_QUEUE_FULL` (`Hub wallet transaction queue is full`) is the fallback when a 503 body has no message. THE HUB's own body is `Wallet transaction queue is at capacity. Retry later.`, and `write()` already prefers that body. Keep the fallback. Do not match on both strings.
 
 ## Do not add
 
-- A base class for the three publish handlers. They share a stop-and-send shape and one group-id function. A template method would be a new abstraction over three call sites.
+- A base class for the three publish handlers. They share a stop-and-send shape and one group-id function.
 - Another error type between `Retryable` and `HubUnavailableError`.
+- A port for the outage module. One adapter makes it a seam with nothing across it.
 - A change to batch size or consumer count. Parallel organisations already come from separate `MessageGroupId`s on the existing consumers.
 
 ## Check
@@ -100,10 +137,11 @@ From `inveniam.io`, run the unit tests that cover the touched files:
 - `apps/hub-service/src/organisation-provisioning/domain/events/publish-hub-document-syncing-requested-internal.event.handler.test.ts`
 - `apps/hub-service/src/organisation-provisioning/domain/events/publish-client-dlt-transaction-internal.event.handler.test.ts`
 
-After the cut, a missing organisation id and a missing taxonomy id still skip the send. A present organisation id still sends `anchoring:org:{organisationId}`. A client deal with a portfolio still sends `anchoring:identity:{portfolioId}`. A 503 and a missing HTTP response still reject with `HubUnavailableError` and do not apply a Failed event.
+After the cut, a missing organisation id and a missing taxonomy id still skip the send. A present organisation id still sends `anchoring:org:{organisationId}`. A client deal with a portfolio still sends `anchoring:identity:{portfolioId}`. A 503 and a missing HTTP response on the write still reject with `HubUnavailableError` and do not apply a Failed event.
 
 ## Related pages
 
 - [Wiki Index](index.md)
+- [Legacy Tokenization](Legacy%20Tokenization.md)
 - [SQS FIFO Approach](SQS%20FIFO%20Approach.md)
 - [ADR-0011 FIFO Per-Wallet Chain Without Hold](../decisions/ADR-0011%20FIFO%20Per-Wallet%20Chain%20Without%20Hold.md)
