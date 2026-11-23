@@ -390,13 +390,13 @@ note over DR : nothing more happens for this file
 
 ## What the FIFO implementation loses
 
-[ADR-0011](../decisions/ADR-0011%20FIFO%20Per-Wallet%20Chain%20Without%20Hold.md) keeps three broker hops, each one an `Internal` event grouped by the signing wallet. The start hop and the resume hop are in the code. The regular-start hop is not.
+[ADR-0011](../decisions/ADR-0011%20FIFO%20Per-Wallet%20Chain%20Without%20Hold.md) keeps three broker hops, each one an `Internal` event grouped by the signing wallet. The start hop, the resume hop, and the regular-start hop are in the code. The regular-start hop has not been exercised on a live file.
 
 | Hop | Event | In the code | Seen 2026-11-19 |
 | --- | --- | --- | --- |
 | Start | `ClientDLTTransaction` → `ClientDLTTransactionInternal`, group `anchoring:identity:{portfolioId}` | Yes. `PublishClientDltTransactionInternalHandler` sends it with `HubInternalEvents` straight to the command queue (source: `publish-client-dlt-transaction-internal.event.handler.ts`, `hub-internal-events.ts`). | Ran. Register reached NVNM. |
 | Resume | `HubSymbolRegisteringSucceededEvent` → `HubSymbolRegisteringSucceededInternal`, then `RunDocumentProvisioning` | Yes. `PublishHubSymbolRegisteringSucceededInternalHandler` sends it with `HubInternalEvents` when the success event is committed, and again if that public event arrives on the event queue. `StoreDealAnchorRegistrySaga` listens only to the internal event (source: `publish-hub-symbol-registering-succeeded-internal.event.handler.ts`, `store-deal-anchor-registry.saga.ts`). | Before this hop, the public event was stored and hub never consumed it. |
-| Regular start | `HubDocumentSyncingRequestedEvent` → `HubDocumentSyncingRequestedInternal`, group `anchoring:org:{organisationId}` | Planned. Not in the code. See Regular start plan. | Not exercised on this deal. |
+| Regular start | `HubDocumentSyncingRequestedEvent` → `HubDocumentSyncingRequestedInternal`, group `anchoring:org:{organisationId}` | Yes. `PublishHubDocumentSyncingRequestedInternalHandler` sends it with `HubInternalEvents`. `TransactionsSagas.syncDocument` listens only to the internal event. Dedup id is `taxonomyId`. | Not exercised on a live file. |
 
 The group id follows the signing wallet. A deal whose `deal_anchors` row resolves a portfolio (`resolveProvisioningPortfolioId`: its own portfolio when it has no parents, otherwise `parentPortfolioIds[0]`) uses `anchoring:identity:{portfolioId}`. A mapped deal with no portfolio uses `anchoring:org:{organisationId}`. No hub-organisation mapping, no `deal_anchors` row, or neither id: the handler does not send. Dedup id is `taxonomyId`, then `transactionId`, then the aggregate id. The public event still goes to the event store for deals.
 
@@ -416,22 +416,13 @@ What that file lost:
 2. **The document write.** Taxonomy `30d499fb-a888-4d0f-9797-3be956f6b099` is still parked in `pending_document`. `RunDocumentProvisioningCommand` never started, so there is no document transaction.
 3. **The wallet group for that write.** No internal message was sent with `anchoring:identity:6ffbf6fb-9391-4710-ad12-341485f51a52`. The document write is not in that portfolio's FIFO group. The public event's group would have been the hub transaction aggregate id, which ADR-0011 refuses to use.
 
-The regular-start hop is the same kind of hole for organisations that sign with org HubKeys. It has not been seen on a live file in this run.
+## Regular start
 
-## Regular start plan
+A regular file starts from `HubDocumentSyncingRequestedEvent`. `PublishHubDocumentSyncingRequestedInternalHandler` copies it to `HubDocumentSyncingRequestedInternal` and sends that copy through `HubInternalEvents` straight to the command queue (source: `publish-hub-document-syncing-requested-internal.event.handler.ts`, `hub-document-syncing-requested-internal.event.ts`). `TransactionsSagas.syncDocument` listens only to the internal event and still runs `SyncDocumentCommand` (source: `transactions.sagas.ts`). The public event stays on the event store. Leaving it in the saga would sync the file twice, once outside the organisation group.
 
-Planned 2026-11-20. Not implemented. Same shape as the client-deal start hop. `SyncDocumentCommand` stays as it is.
+The group id is `anchoring:org:{organisationId}` from `anchoringMessageGroupId`, passed only the organisation id. The deduplication id is `taxonomyId`. No organisation id, or no taxonomy id: the handler does not send. There is no register step and no identity-wallet top-up. The document webhook stays the terminal event. NestAwsCqrs consumers are unchanged; the internal class is registered by its `@EventsHandler` and by the saga.
 
-A regular file starts from `HubDocumentSyncingRequestedEvent` (source: `transactions.sagas.ts`, `syncDocument`). That saga listens to the public event, so the command-queue copy starts `SyncDocumentCommand` on the publisher's group. Two files for one organisation are not ordered on that organisation's HubKeys.
-
-1. Add `HubDocumentSyncingRequestedInternal` with the same payload. A handler on the public event sends it through `HubInternalEvents`. Group `anchoring:org:{organisationId}` from `anchoringMessageGroupId`. Dedup id `taxonomyId`. No `organisationId`: do not send.
-2. Point `TransactionsSagas.syncDocument` at the internal event only. Leaving the public event in the saga syncs the file twice, once outside the group.
-3. No register step and no identity-wallet top-up. The document webhook stays the terminal event.
-4. No change to the NestAwsCqrs consumers.
-
-Tests follow the client-deal handler. A missing organisation id sends nothing. A present one sends `anchoring:org:{organisationId}` with dedup `taxonomyId`. The saga maps the internal event to `SyncDocumentCommand` and does not map the public event.
-
-Out of this slice: a manual sync that signs with a portfolio identity wallet. That write has to use `anchoring:identity:{portfolioId}` or it races client-deal writes on the same wallet. Which wallet a manual sync signs with is [Open Questions](Open%20Questions.md) #3. Also out: the catch-up second parent transfer, and the nonce failure in [Open Questions](Open%20Questions.md) #12.
+Out of this slice: a manual sync that signs with a portfolio identity wallet. That write has to use `anchoring:identity:{portfolioId}` or it races client-deal writes on the same wallet. Which wallet a manual sync signs with is [Open Questions](Open%20Questions.md) #3. Also out: the nonce failure in [Open Questions](Open%20Questions.md) #12.
 
 ## Related pages
 
