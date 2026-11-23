@@ -1,6 +1,6 @@
 ---
 name: Code Review Plan
-date: 2026-11-23T20:30:00.000Z
+date: 2026-11-23T20:40:00.000Z
 tags:
   - bulk-anchoring
   - inv-43987
@@ -98,7 +98,7 @@ The write rule stays inside `HubTokenizationProvider.write`: no response and HTT
 
 4. `getProfile` and `setAccessKey` stay as they are, with every error turned into a 422. They serve flows outside this review, and nobody has confirmed what those flows expect.
 5. Existing tests that still pass stay. New tests cover `TokenizationService`, the model for sync and register, and `RegisterSymbolCommandHandler`. A test is replaced only if it asserts the old 502 status check.
-6. `addRegistry` goes through the same `HubTokenizationProvider.write` POST as document sync. It follows the same write rule, so a missing response and HTTP 503 both redeliver. Giving register a stricter rule would need a call-type flag on `write`, which is not cheap. The risk is recorded: if THE HUB accepted the request before the connection dropped, the redelivery can send a second `addRegistry` for the same deal.
+6. `addRegistry` goes through the same `HubTokenizationProvider.write` POST as document sync. It follows the same write rule, so a missing response and HTTP 503 both redeliver. Giving register a stricter rule would need a call-type flag on `write`, which is not cheap. The duplicate risk is accepted on the owner's reasoning: if THE HUB accepted `addRegistry`, the same transaction cannot be repeated, and if it did not, redelivery is safe. This has not been checked against THE HUB.
 
 7. `hub-tokenization.provider.ts` is not edited by this review. The alias `CONNECTION_NOT_ESTABLISHED` stays there, so the earlier plan item to remove it is dropped.
 
