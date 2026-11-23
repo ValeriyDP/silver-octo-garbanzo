@@ -434,3 +434,4 @@ Out of this slice: a manual sync that signs with a portfolio identity wallet. Th
 - [File Start Today](File%20Start%20Today.md) (reference, on hold)
 - [Bucket Pattern And Alternatives](Bucket%20Pattern%20And%20Alternatives.md) (reference, on hold)
 - [Open Questions](Open%20Questions.md) (reference, on hold)
+- [Code Review Plan](Code%20Review%20Plan.md)

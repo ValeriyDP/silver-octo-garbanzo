@@ -1,6 +1,6 @@
 ---
 name: Wiki Index
-date: 2026-11-16T12:30:00.000Z
+date: 2026-11-23T17:20:00.000Z
 tags:
   - bulk-anchoring
   - inv-43987
@@ -22,6 +22,7 @@ Decisions live in [decisions/INDEX](../decisions/INDEX.md). Cross-link; do not c
 
 - [SQS FIFO Approach](SQS%20FIFO%20Approach.md) — **Active.** Hub republishes file starts to the existing hub SQS FIFO queue, grouped by signing wallet. The start hop and the register-success resume hop are implemented. The regular-start hop is planned and not built: org HubKeys, group `anchoring:org:{organisationId}`. Open items are on the page.
 - [Holding The Start Message](Holding%20The%20Start%20Message.md) — **Active.** Ways to hold a start message until the finish: throw with the global error handler, wait inside the handler, dedicated queue with its own consumer. Why a second consumer on the shared queue fails. Direct `SendMessage` instead of SNS.
+- [Code Review Plan](Code%20Review%20Plan.md) — **Active.** What to delete from the running start hop and the 503 retry, and what stays: the three `Retryable` rethrows, the SQS patch, and the `@EventsHandler` registration.
 
 Every page below is on hold and kept as reference.
 
