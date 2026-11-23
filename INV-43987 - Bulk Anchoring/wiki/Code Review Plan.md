@@ -1,6 +1,6 @@
 ---
 name: Code Review Plan
-date: 2026-11-23T20:12:00.000Z
+date: 2026-11-23T20:30:00.000Z
 tags:
   - bulk-anchoring
   - inv-43987
@@ -13,7 +13,7 @@ tags:
 > [!info] Active
 > Review of the code that is already running. This page lists what to delete, what to leave, and the one open design direction. Legacy tokenization is out of scope and described on its own page.
 
-**Summary**: The review covers NVNM document anchoring: register (`addRegistry`), document sync, connect, and status polling. Tokenization (deploy, supply, distribution, token relations) and every non-NVNM ledger are legacy, are frozen, and live on [Legacy Tokenization](Legacy%20Tokenization.md). Four deletions are settled. One direction is set, with six decisions settled and none open: a single in-process module in `tokenization/` that decides whether a failed THE HUB call is an outage to redeliver or a final failure. It stays inside IO Hub Service. `NestAwsCqrs` is not edited.
+**Summary**: The review covers NVNM document anchoring: register (`addRegistry`), document sync, connect, and status polling. Tokenization (deploy, supply, distribution, token relations) and every non-NVNM ledger are legacy, are frozen, and live on [Legacy Tokenization](Legacy%20Tokenization.md). Three deletions are settled. One direction is set, with seven decisions settled and none open: a typed `HubConnectionOutageException` marks a failed THE HUB login, and register redelivers on an outage like document sync. It stays inside IO Hub Service. `HubTokenizationProvider` and `NestAwsCqrs` are not edited.
 
 **Sources**: `apps/hub-service/src/sqs/retryable.ts`, `apps/hub-service/src/sqs/hub-unavailable.error.ts`, `apps/hub-service/src/sqs/install-hub-sqs-retry.ts`, `apps/hub-service/src/main.ts`, `apps/hub-service/src/tokenization/hub-tokenization.provider.ts`, `apps/hub-service/src/tokenization/smart-account-tokenization.provider.ts`, `apps/hub-service/src/transactions/domain/models/transactions.model.ts`, `apps/hub-service/src/transactions/domain/commands/sync-document.command.ts`, `apps/hub-service/src/transactions/domain/commands/register-symbol.command.ts`, `apps/hub-service/src/transactions/application/providers/ledger-io.provider.ts`, `apps/hub-service/src/transactions/application/providers/base-ledger.provider.ts`, `apps/hub-service/src/transactions/application/providers/tokenization/nvnm/nvnm-ledger.provider.ts`, `apps/hub-service/src/organisation-provisioning/domain/chain/shared/identity-wallet-underfunded.error.ts`, `apps/hub-service/src/organisation-provisioning/domain/anchoring-message-group.ts`, `apps/hub-service/src/organisation-provisioning/domain/events/publish-hub-document-syncing-requested-internal.event.handler.ts`, `apps/hub-service/src/organisation-provisioning/domain/events/publish-client-dlt-transaction-internal.event.handler.ts`, `shared-modules/NestAwsCqrs/src/NestAwsService.ts`.
 
@@ -57,10 +57,6 @@ Replace the template string with `anchoringMessageGroupId({ portfolioId })`. The
 
 `retryable.ts` exports an empty interface and an abstract class of the same name. TypeScript merges them. Nothing implements the interface on its own. Delete the interface. Keep the abstract class. It has two subclasses: `HubUnavailableError` and `IdentityWalletUnderfundedError`. `installHubSqsRetry` redelivers both.
 
-### Local alias of the connection message
-
-`hub-tokenization.provider.ts` copies `HUB_CONNECTION_NOT_ESTABLISHED` into `CONNECTION_NOT_ESTABLISHED`. Use the imported constant at the call sites.
-
 ## Outage rule
 
 ### Where the rule lives today
@@ -85,24 +81,26 @@ Six modules each know a part of "THE HUB is unreachable or full, redeliver; anyt
 
 ### Direction
 
-One small in-process module in `apps/hub-service/src/tokenization/`, next to `HubTokenizationProvider`. It takes a failed THE HUB call and answers outage or final. `HubTokenizationProvider` is the only adapter that calls THE HUB, so the module needs no port. `HubUnavailableError`, `Retryable`, and `installHubSqsRetry` stay where they are. No file moves.
+`HubTokenizationProvider` is not edited. A typed marker for "THE HUB could not be logged in to" is added around it, in two places that already exist:
 
-Rule by call type:
+- `HubConnectionOutageException` in `sqs/hub-unavailable.error.ts`, next to `HubUnavailableError`. It extends `BadGatewayException`, so HTTP callers still see 502.
+- `TokenizationService.getSpecificProvider`, the only call site of `HubTokenizationProvider.connect()`. It turns the `BadGatewayException` from `connect()` into `HubConnectionOutageException`. A 422 from a rejected login passes through unchanged.
 
-- `connect()`: no response and any 5xx are an outage. Any 4xx is final. `getProfile` and `setAccessKey` are not changed (decision 4).
-- The write POST: no response and HTTP 503 are an outage. Any other failure is final, because a 504 may mean the write reached THE HUB.
+`TransactionsModel` checks for `HubConnectionOutageException` and turns it into `HubUnavailableError`. The check replaces the old test for any `HttpException` with status 502, which also matched `BadGatewayException` from the hub-admin clients. The model uses one private method for both `syncDocument` and `registerSymbol`. `HubUnavailableError`, `Retryable`, and `installHubSqsRetry` stay where they are. No file moves.
 
-The 502 status check on `TransactionsModel` is replaced by a typed marker: `connect()` throws a `BadGatewayException` subclass. It is still an `HttpException` with status 502, so every other caller behaves as now.
+The write rule stays inside `HubTokenizationProvider.write`: no response and HTTP 503 are an outage, and any other failure is final, because a 504 may mean the write reached THE HUB. No separate classifier module is added.
 
 ### Settled decisions
 
 1. Register redelivers on an outage, like document sync. A registry that fails because THE HUB was down blocks every file on that deal. Register's FIFO group is its own aggregate id, so redelivery blocks no other message.
 2. There is no opt-in mechanism. `LedgerIOProvider.write` stays as it is. Document sync and register both redeliver through the existing `Retryable` rethrow. The frozen legacy flows are not touched and keep the gap recorded on [Legacy Tokenization](Legacy%20Tokenization.md).
-3. The three `instanceof Retryable` rethrows stay in `TransactionsModel`, `SyncDocumentCommandHandler`, and `LedgerIOProvider.write`. Register gets the same two rethrows in `TransactionsModel.registerSymbol` and `RegisterSymbolCommandHandler`. The outage module still owns what counts as an outage.
+3. The three `instanceof Retryable` rethrows stay in `TransactionsModel`, `SyncDocumentCommandHandler`, and `LedgerIOProvider.write`. Register gets the same two rethrows in `TransactionsModel.registerSymbol` and `RegisterSymbolCommandHandler`. `HubConnectionOutageException` and the write rule in `HubTokenizationProvider.write` still own what counts as an outage.
 
 4. `getProfile` and `setAccessKey` stay as they are, with every error turned into a 422. They serve flows outside this review, and nobody has confirmed what those flows expect.
-5. Existing tests that still pass stay. New tests cover the outage module at its interface and the register redelivery. A test is replaced only if it asserts the old 502 status check.
+5. Existing tests that still pass stay. New tests cover `TokenizationService`, the model for sync and register, and `RegisterSymbolCommandHandler`. A test is replaced only if it asserts the old 502 status check.
 6. `addRegistry` goes through the same `HubTokenizationProvider.write` POST as document sync. It follows the same write rule, so a missing response and HTTP 503 both redeliver. Giving register a stricter rule would need a call-type flag on `write`, which is not cheap. The risk is recorded: if THE HUB accepted the request before the connection dropped, the redelivery can send a second `addRegistry` for the same deal.
+
+7. `hub-tokenization.provider.ts` is not edited by this review. The alias `CONNECTION_NOT_ESTABLISHED` stays there, so the earlier plan item to remove it is dropped.
 
 ## Leave in place
 
@@ -124,7 +122,7 @@ Keep the three classes. Do not add a side list of event names.
 
 - A base class for the three publish handlers. They share a stop-and-send shape and one group-id function.
 - Another error type between `Retryable` and `HubUnavailableError`.
-- A port for the outage module. One adapter makes it a seam with nothing across it.
+- A port or a classifier module for the outage rule. One adapter makes it a seam with nothing across it.
 - A change to batch size or consumer count. Parallel organisations already come from separate `MessageGroupId`s on the existing consumers.
 
 ## Check
