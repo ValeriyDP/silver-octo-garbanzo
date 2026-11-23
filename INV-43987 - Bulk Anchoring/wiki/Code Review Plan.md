@@ -1,6 +1,6 @@
 ---
 name: Code Review Plan
-date: 2026-11-23T20:40:00.000Z
+date: 2026-11-23T20:55:00.000Z
 tags:
   - bulk-anchoring
   - inv-43987
@@ -13,7 +13,7 @@ tags:
 > [!info] Active
 > Review of the code that is already running. This page lists what to delete, what to leave, and the one open design direction. Legacy tokenization is out of scope and described on its own page.
 
-**Summary**: The review covers NVNM document anchoring: register (`addRegistry`), document sync, connect, and status polling. Tokenization (deploy, supply, distribution, token relations) and every non-NVNM ledger are legacy, are frozen, and live on [Legacy Tokenization](Legacy%20Tokenization.md). Three deletions are settled. One direction is set, with seven decisions settled and none open: a typed `HubConnectionOutageException` marks a failed THE HUB login, and register redelivers on an outage like document sync. It stays inside IO Hub Service. `HubTokenizationProvider` and `NestAwsCqrs` are not edited.
+**Summary**: The review covers NVNM document anchoring: register (`addRegistry`), document sync, connect, and status polling. Tokenization (deploy, supply, distribution, token relations) and every non-NVNM ledger are legacy, are frozen, and live on [Legacy Tokenization](Legacy%20Tokenization.md). Three deletions are settled. One direction is set, with nine decisions settled and none open: a typed `HubConnectionOutageException` marks a failed THE HUB login, and register redelivers on an outage like document sync. It stays inside IO Hub Service. `HubTokenizationProvider` and `NestAwsCqrs` are not edited.
 
 **Sources**: `apps/hub-service/src/sqs/retryable.ts`, `apps/hub-service/src/sqs/hub-unavailable.error.ts`, `apps/hub-service/src/sqs/install-hub-sqs-retry.ts`, `apps/hub-service/src/main.ts`, `apps/hub-service/src/tokenization/hub-tokenization.provider.ts`, `apps/hub-service/src/tokenization/smart-account-tokenization.provider.ts`, `apps/hub-service/src/transactions/domain/models/transactions.model.ts`, `apps/hub-service/src/transactions/domain/commands/sync-document.command.ts`, `apps/hub-service/src/transactions/domain/commands/register-symbol.command.ts`, `apps/hub-service/src/transactions/application/providers/ledger-io.provider.ts`, `apps/hub-service/src/transactions/application/providers/base-ledger.provider.ts`, `apps/hub-service/src/transactions/application/providers/tokenization/nvnm/nvnm-ledger.provider.ts`, `apps/hub-service/src/organisation-provisioning/domain/chain/shared/identity-wallet-underfunded.error.ts`, `apps/hub-service/src/organisation-provisioning/domain/anchoring-message-group.ts`, `apps/hub-service/src/organisation-provisioning/domain/events/publish-hub-document-syncing-requested-internal.event.handler.ts`, `apps/hub-service/src/organisation-provisioning/domain/events/publish-client-dlt-transaction-internal.event.handler.ts`, `shared-modules/NestAwsCqrs/src/NestAwsService.ts`.
 
@@ -101,6 +101,8 @@ The write rule stays inside `HubTokenizationProvider.write`: no response and HTT
 6. `addRegistry` goes through the same `HubTokenizationProvider.write` POST as document sync. It follows the same write rule, so a missing response and HTTP 503 both redeliver. Giving register a stricter rule would need a call-type flag on `write`, which is not cheap. The duplicate risk is accepted on the owner's reasoning: if THE HUB accepted `addRegistry`, the same transaction cannot be repeated, and if it did not, redelivery is safe. This has not been checked against THE HUB.
 
 7. `hub-tokenization.provider.ts` is not edited by this review. The alias `CONNECTION_NOT_ESTABLISHED` stays there, so the earlier plan item to remove it is dropped.
+8. The three publish handlers share an abstract base class, `PublishInternalEventBaseHandler`, in `organisation-provisioning/domain/events/`. It stays inside IO Hub Service and does not move to `shared-modules/Events`. It owns the `stopped` log line, the event context, and the send. A subclass keeps its own routing and its own stops.
+9. A missing group id or deduplication id is a thrown `InternalEventSendRejectedError`, which is not a `Retryable`, so SQS does not redeliver it. While `ENABLE_QUEUE_GLOBAL_ERROR_HANDLER` is off in IO Hub Service, any non-`Retryable` error is dropped after it is logged. The document-sync publisher used to stop quietly on a missing `taxonomyId` and now throws the same error as the client-deal publisher. The register-success publisher falls back to the transaction id or the aggregate id and does not change.
 
 ## Leave in place
 
@@ -120,7 +122,6 @@ Keep the three classes. Do not add a side list of event names.
 
 ## Do not add
 
-- A base class for the three publish handlers. They share a stop-and-send shape and one group-id function.
 - Another error type between `Retryable` and `HubUnavailableError`.
 - A port or a classifier module for the outage rule. One adapter makes it a seam with nothing across it.
 - A change to batch size or consumer count. Parallel organisations already come from separate `MessageGroupId`s on the existing consumers.
