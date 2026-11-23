@@ -1,6 +1,6 @@
 ---
 name: Code Review Plan
-date: 2026-11-23T20:05:00.000Z
+date: 2026-11-23T20:12:00.000Z
 tags:
   - bulk-anchoring
   - inv-43987
@@ -13,7 +13,7 @@ tags:
 > [!info] Active
 > Review of the code that is already running. This page lists what to delete, what to leave, and the one open design direction. Legacy tokenization is out of scope and described on its own page.
 
-**Summary**: The review covers NVNM document anchoring: register (`addRegistry`), document sync, connect, and status polling. Tokenization (deploy, supply, distribution, token relations) and every non-NVNM ledger are legacy, are frozen, and live on [Legacy Tokenization](Legacy%20Tokenization.md). Four deletions are settled. One direction is set, with three decisions settled and three open: a single in-process module in `tokenization/` that decides whether a failed THE HUB call is an outage to redeliver or a final failure. It stays inside IO Hub Service. `NestAwsCqrs` is not edited.
+**Summary**: The review covers NVNM document anchoring: register (`addRegistry`), document sync, connect, and status polling. Tokenization (deploy, supply, distribution, token relations) and every non-NVNM ledger are legacy, are frozen, and live on [Legacy Tokenization](Legacy%20Tokenization.md). Four deletions are settled. One direction is set, with six decisions settled and none open: a single in-process module in `tokenization/` that decides whether a failed THE HUB call is an outage to redeliver or a final failure. It stays inside IO Hub Service. `NestAwsCqrs` is not edited.
 
 **Sources**: `apps/hub-service/src/sqs/retryable.ts`, `apps/hub-service/src/sqs/hub-unavailable.error.ts`, `apps/hub-service/src/sqs/install-hub-sqs-retry.ts`, `apps/hub-service/src/main.ts`, `apps/hub-service/src/tokenization/hub-tokenization.provider.ts`, `apps/hub-service/src/tokenization/smart-account-tokenization.provider.ts`, `apps/hub-service/src/transactions/domain/models/transactions.model.ts`, `apps/hub-service/src/transactions/domain/commands/sync-document.command.ts`, `apps/hub-service/src/transactions/domain/commands/register-symbol.command.ts`, `apps/hub-service/src/transactions/application/providers/ledger-io.provider.ts`, `apps/hub-service/src/transactions/application/providers/base-ledger.provider.ts`, `apps/hub-service/src/transactions/application/providers/tokenization/nvnm/nvnm-ledger.provider.ts`, `apps/hub-service/src/organisation-provisioning/domain/chain/shared/identity-wallet-underfunded.error.ts`, `apps/hub-service/src/organisation-provisioning/domain/anchoring-message-group.ts`, `apps/hub-service/src/organisation-provisioning/domain/events/publish-hub-document-syncing-requested-internal.event.handler.ts`, `apps/hub-service/src/organisation-provisioning/domain/events/publish-client-dlt-transaction-internal.event.handler.ts`, `shared-modules/NestAwsCqrs/src/NestAwsService.ts`.
 
@@ -78,7 +78,7 @@ Six modules each know a part of "THE HUB is unreachable or full, redeliver; anyt
 
 ### Gaps
 
-- `setAccessKey` turns every error into a 422 and `getProfile` turns every error into a 422. A THE HUB outage on either is final, while the same outage on the write is redelivered.
+- `setAccessKey` turns every error into a 422 and `getProfile` turns every error into a 422. A THE HUB outage on either is final, while the same outage on the write is redelivered. This stays as it is (decision 4).
 - The 502 check in `TransactionsModel.syncDocument` matches any `BadGatewayException`, including the ones the hub-admin clients throw.
 - Register reaches `LedgerIOProvider.write`. On an outage the write rethrows before the Failed row, and `registerSymbol` publishes `HubSymbolRegisteringFailedEvent`. Register is not redelivered and leaves no Failed row. Neither `TransactionsModel.registerSymbol` nor `RegisterSymbolCommandHandler` rethrows `Retryable`.
 - `LedgerIOProvider.write` rethrows `Retryable` for every caller, so legacy flows also leave no Failed row on an outage. That is recorded on [Legacy Tokenization](Legacy%20Tokenization.md) and is not fixed here.
@@ -89,7 +89,7 @@ One small in-process module in `apps/hub-service/src/tokenization/`, next to `Hu
 
 Rule by call type:
 
-- Reads (`connect`, `getProfile`, `setAccessKey`): no response and any 5xx are an outage. Any 4xx is final.
+- `connect()`: no response and any 5xx are an outage. Any 4xx is final. `getProfile` and `setAccessKey` are not changed (decision 4).
 - The write POST: no response and HTTP 503 are an outage. Any other failure is final, because a 504 may mean the write reached THE HUB.
 
 The 502 status check on `TransactionsModel` is replaced by a typed marker: `connect()` throws a `BadGatewayException` subclass. It is still an `HttpException` with status 502, so every other caller behaves as now.
@@ -100,11 +100,9 @@ The 502 status check on `TransactionsModel` is replaced by a typed marker: `conn
 2. There is no opt-in mechanism. `LedgerIOProvider.write` stays as it is. Document sync and register both redeliver through the existing `Retryable` rethrow. The frozen legacy flows are not touched and keep the gap recorded on [Legacy Tokenization](Legacy%20Tokenization.md).
 3. The three `instanceof Retryable` rethrows stay in `TransactionsModel`, `SyncDocumentCommandHandler`, and `LedgerIOProvider.write`. Register gets the same two rethrows in `TransactionsModel.registerSymbol` and `RegisterSymbolCommandHandler`. The outage module still owns what counts as an outage.
 
-### Open decisions
-
-4. Whether `getProfile` and `setAccessKey` change failure reason text for the flows that share them. The event stays Failed.
-5. Which existing tests are replaced by tests at the module's interface.
-6. Whether a missing response on the `addRegistry` write redelivers. THE HUB may have accepted the request before the connection dropped, and a second `addRegistry` for the same deal would create a second registry. A 503 and a failed `connect()` are safe, because THE HUB did not accept the write.
+4. `getProfile` and `setAccessKey` stay as they are, with every error turned into a 422. They serve flows outside this review, and nobody has confirmed what those flows expect.
+5. Existing tests that still pass stay. New tests cover the outage module at its interface and the register redelivery. A test is replaced only if it asserts the old 502 status check.
+6. `addRegistry` goes through the same `HubTokenizationProvider.write` POST as document sync. It follows the same write rule, so a missing response and HTTP 503 both redeliver. Giving register a stricter rule would need a call-type flag on `write`, which is not cheap. The risk is recorded: if THE HUB accepted the request before the connection dropped, the redelivery can send a second `addRegistry` for the same deal.
 
 ## Leave in place
 
