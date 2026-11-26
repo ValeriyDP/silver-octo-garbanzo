@@ -4,16 +4,16 @@
     "type": "split",
     "children": [
       {
-        "id": "89f5153bbeba3d81",
+        "id": "b905161780538f2d",
         "type": "tabs",
         "children": [
           {
-            "id": "615df39f17b00c67",
+            "id": "89b9fb69a68bdea3",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "AGENTS.md",
+                "file": "INV-43987 - Bulk Anchoring/wiki/PR Description.md",
                 "mode": "source",
                 "source": false,
                 "backlinks": true,
@@ -28,35 +28,10 @@
                 }
               },
               "icon": "lucide-file",
-              "title": "AGENTS"
-            }
-          },
-          {
-            "id": "9dfa287d1bcf5e79",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "INV-43353 - NestJS Upgrade/decisions/ADR-0001-Update NestJS.md",
-                "mode": "preview",
-                "source": false,
-                "backlinks": true,
-                "backlinkOpts": {
-                  "collapseAll": false,
-                  "extraContext": false,
-                  "sortOrder": "alphabetical",
-                  "showSearch": false,
-                  "searchQuery": "",
-                  "backlinkCollapsed": false,
-                  "unlinkedCollapsed": true
-                }
-              },
-              "icon": "lucide-file",
-              "title": "ADR-0001-Update NestJS"
+              "title": "PR Description"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -224,8 +199,9 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "9dfa287d1bcf5e79",
+  "active": "89b9fb69a68bdea3",
   "lastOpenFiles": [
+    "INV-43353 - NestJS Upgrade/decisions/ADR-0001-Update NestJS.md",
     "INV-43987 - Bulk Anchoring/wiki/Legacy Tokenization.md",
     "INV-43987 - Bulk Anchoring/wiki/Code Review Plan.md",
     "INV-43353 - NestJS Upgrade/raw/nestjs-docs-llms-full.md",
@@ -255,7 +231,6 @@
     "INV-42043 - NVNM-Cite/wiki/Canonical Citation.md",
     "INV-42043 - NVNM-Cite/wiki/Backend.md",
     "INV-42043 - NVNM-Cite/wiki/Authentication.md",
-    "INV-42043 - NVNM-Cite/wiki/Audience.md",
     "INV-42043 - NVNM-Cite/wiki",
     "INV-42043 - NVNM-Cite/raw",
     "INV-42043 - NVNM-Cite/qmd-collection",
