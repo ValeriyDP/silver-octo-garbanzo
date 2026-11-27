@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "INV-43987 - Bulk Anchoring/wiki/PR Description.md",
+                "file": "INV-43987 - Bulk Anchoring/wiki/Open Questions.md",
                 "mode": "source",
                 "source": false,
                 "backlinks": true,
@@ -28,7 +28,7 @@
                 }
               },
               "icon": "lucide-file",
-              "title": "PR Description"
+              "title": "Open Questions"
             }
           }
         ]
@@ -65,7 +65,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "path:\"INV-43987 - Bulk Anchoring/\" migration",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -86,7 +86,8 @@
               "title": "Bookmarks"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
@@ -201,6 +202,8 @@
   },
   "active": "89b9fb69a68bdea3",
   "lastOpenFiles": [
+    "INV-43987 - Bulk Anchoring/decisions/ADR-0001 Hub Postgres Bucket.md",
+    "INV-43987 - Bulk Anchoring/wiki/PR Description.md",
     "INV-43353 - NestJS Upgrade/decisions/ADR-0001-Update NestJS.md",
     "INV-43987 - Bulk Anchoring/wiki/Legacy Tokenization.md",
     "INV-43987 - Bulk Anchoring/wiki/Code Review Plan.md",
@@ -229,8 +232,6 @@
     "INV-42043 - NVNM-Cite/wiki/Document Hash.md",
     "INV-42043 - NVNM-Cite/wiki/Eyecite.md",
     "INV-42043 - NVNM-Cite/wiki/Canonical Citation.md",
-    "INV-42043 - NVNM-Cite/wiki/Backend.md",
-    "INV-42043 - NVNM-Cite/wiki/Authentication.md",
     "INV-42043 - NVNM-Cite/wiki",
     "INV-42043 - NVNM-Cite/raw",
     "INV-42043 - NVNM-Cite/qmd-collection",
